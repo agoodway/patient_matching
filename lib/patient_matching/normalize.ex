@@ -58,6 +58,7 @@ defmodule PatientMatching.Normalize do
         family_name: if(alias?, do: nil, else: family),
         suffix: family_suffix || given_suffix,
         birth_order: record |> Map.get(:given_name) |> letters() |> Placeholders.birth_order(),
+        newborn: record |> Map.get(:given_name) |> letters() |> Placeholders.newborn?(),
         dob: date(Map.get(record, :dob)),
         sex: value(:sex, Map.get(record, :sex)),
         zip: value(:zip, Map.get(record, :zip)),

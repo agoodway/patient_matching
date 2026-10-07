@@ -38,6 +38,26 @@ defmodule PatientMatching.GuardsTest do
     refute Guards.missing_dob?(n(%{ssn: "212456789"}), n(%{ssn: "212456789"}))
   end
 
+  test "newborn labels must agree on the birth date" do
+    baby = n(%{given_name: "Baby Girl", family_name: "Lent", dob: "2014-02-15"})
+    assert baby.newborn
+
+    assert Guards.newborn_dob?(
+             baby,
+             n(%{given_name: "Bailey", family_name: "Lent", dob: "2015-07-02"})
+           )
+
+    refute Guards.newborn_dob?(
+             baby,
+             n(%{given_name: "Bailey", family_name: "Lent", dob: "2014-02-16"})
+           )
+
+    refute Guards.newborn_dob?(
+             n(%{given_name: "Ann", dob: "2014-02-15"}),
+             n(%{given_name: "Ann", dob: "2015-07-02"})
+           )
+  end
+
   test "Jan-1 birthdays need something beyond name and DOB" do
     a = %{given_name: "Lan", family_name: "Nguyen", dob: "1962-01-01", zip: "77072"}
     assert Guards.jan1_uncorroborated?(n(a), n(%{a | zip: "77036"}))

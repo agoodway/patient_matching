@@ -31,6 +31,9 @@ defmodule PatientMatching.Guards do
     * `:sex_and_given_name` (10) - recorded sexes and given names both differ.
     * `:birth_order` (30) - newborn labels with different birth orders
       (`BABY BOY A` / `BABY BOY B`).
+    * `:newborn_dob` (10) - one record has a newborn label instead of a
+      given name and the birth dates are neither equal nor one typo apart.
+      Birth hospitals record a newborn's date exactly; a sibling's differs.
 
   Too little to auto-match on (penalty 0, review only):
 
@@ -54,6 +57,7 @@ defmodule PatientMatching.Guards do
       {:twin, &twin?/2, 10.0},
       {:sex_and_given_name, &sex_and_given_name?/2, 10.0},
       {:birth_order, &birth_order?/2, 30.0},
+      {:newborn_dob, &newborn_dob?/2, 10.0},
       {:missing_dob, &missing_dob?/2, 0.0},
       {:jan1_uncorroborated, &jan1_uncorroborated?/2, 0.0}
     ]
@@ -127,6 +131,14 @@ defmodule PatientMatching.Guards do
   @doc "Newborn labels with different birth orders."
   def birth_order?(a, b),
     do: a[:birth_order] != nil and b[:birth_order] != nil and a[:birth_order] != b[:birth_order]
+
+  @doc "A newborn-label record against a different birth date."
+  def newborn_dob?(a, b) do
+    (a[:newborn] == true or b[:newborn] == true) and a[:dob] != nil and b[:dob] != nil and
+      a[:dob] != b[:dob] and not Comparators.dob_one_edit?(a[:dob], b[:dob]) and
+      not Comparators.month_day_swapped?(a[:dob], b[:dob]) and
+      not Comparators.within_days?(a[:dob], b[:dob], 1)
+  end
 
   @doc "A DOB is missing on either side and full SSNs do not agree."
   def missing_dob?(a, b),

@@ -78,6 +78,12 @@ defmodule PatientMatching.Placeholders do
   def placeholder?(:zip, value, lists), do: repeated?(value) or listed?(lists, :zip, value)
   def placeholder?(field, value, lists), do: listed?(lists, field, value)
 
+  @doc "True when a compact given name is a newborn label (`BABYGIRL`, `BB`, `BOY`, `INFANTBOYA`)."
+  def newborn?(value) when is_binary(value),
+    do: Regex.match?(@newborn, value) or value in ~w(BB BG BBB BBG BOY GIRL)
+
+  def newborn?(_), do: false
+
   @doc "Birth order from a newborn label (`BABY GIRL B` is 2, `NEWBORN TWIN 1` is 1), else nil."
   def birth_order(value) when is_binary(value) do
     case Regex.run(@newborn, value) do
