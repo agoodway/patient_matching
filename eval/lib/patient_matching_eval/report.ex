@@ -186,7 +186,9 @@ defmodule PatientMatchingEval.Report do
       end
 
     flips =
-      for g <- golden || [], old = baseline["golden"][g.id], old != nil, old != g.pass do
+      for g <- golden || [],
+          {:ok, old} <- [Map.fetch(baseline["golden"], g.id)],
+          old != g.pass do
         "    #{if g.pass, do: "fixed  ", else: "BROKEN "} #{g.id} (now #{g.outcome})"
       end
 

@@ -1,10 +1,72 @@
 defmodule PatientMatching.Normalize do
   @moduledoc false
-  @fields [:source, :mrn, :ssn, :given_name, :family_name, :dob, :sex, :zip, :phone, :street]
+  alias PatientMatching.Placeholders
 
-  @doc "Adds a normalized copy of patient fields, retaining the original map values."
-  def record(record) when is_map(record) do
-    normalized = Map.new(@fields, &{&1, value(&1, Map.get(record, &1))})
+  @fields [:source, :mrn, :ssn, :given_name, :family_name, :dob, :sex, :zip, :phone, :street]
+  @suffixes %{
+    "JR" => "JR",
+    "SR" => "SR",
+    "II" => "II",
+    "2ND" => "II",
+    "III" => "III",
+    "3RD" => "III",
+    "IV" => "IV",
+    "4TH" => "IV"
+  }
+  @unknown_sex ~w(U UNK UNKNOWN N NA A)
+  @min_year 1880
+  # Letters that canonical decomposition leaves intact.
+  @folds [
+    {"ß", "SS"},
+    {"ẞ", "SS"},
+    {"Ø", "O"},
+    {"ø", "O"},
+    {"Æ", "AE"},
+    {"æ", "AE"},
+    {"Œ", "OE"},
+    {"œ", "OE"},
+    {"Ł", "L"},
+    {"ł", "L"},
+    {"Đ", "D"},
+    {"đ", "D"},
+    {"Þ", "TH"},
+    {"þ", "TH"},
+    {"ı", "I"}
+  ]
+
+  @doc """
+  Adds a normalized copy of patient fields, retaining the original map values.
+  Placeholder values (see `PatientMatching.Placeholders`) become nil.
+  """
+  def record(record, placeholders \\ :default)
+
+  def record(record, placeholders) when is_map(record) do
+    lists = if is_map(placeholders), do: placeholders, else: Placeholders.default()
+    {given, given_suffix} = name(Map.get(record, :given_name))
+    {family, family_suffix} = name(Map.get(record, :family_name))
+    {ssn, ssn_partial} = ssn(Map.get(record, :ssn))
+
+    alias? = Placeholders.alias?(given, family, lists)
+
+    normalized =
+      %{
+        source: string(Map.get(record, :source)),
+        mrn: mrn(Map.get(record, :mrn)),
+        ssn: ssn,
+        ssn_partial: ssn_partial,
+        given_name: if(alias?, do: nil, else: given),
+        family_name: if(alias?, do: nil, else: family),
+        suffix: family_suffix || given_suffix,
+        dob: date(Map.get(record, :dob)),
+        sex: value(:sex, Map.get(record, :sex)),
+        zip: value(:zip, Map.get(record, :zip)),
+        phone: value(:phone, Map.get(record, :phone)),
+        street: string(Map.get(record, :street))
+      }
+      |> Map.new(fn {field, value} ->
+        {field, if(Placeholders.placeholder?(field, value, lists), do: nil, else: value)}
+      end)
+
     # Custom comparisons may use additional fields.
     extra = Map.drop(record, [:id, :normalized | @fields])
 
@@ -17,45 +79,137 @@ defmodule PatientMatching.Normalize do
 
   @doc "Normalizes a field according to its patient-field rules, treating invalid values as nil."
   def value(:dob, value), do: date(value)
-  def value(:phone, value), do: digits(value, 7, :at_least)
-  def value(:ssn, value), do: digits(value, 9, :exact)
+  def value(:mrn, value), do: mrn(value)
+  def value(:ssn, value), do: value |> ssn() |> elem(0)
+
+  def value(field, value) when field in [:given_name, :family_name],
+    do: value |> name() |> elem(0)
+
+  def value(:phone, value) do
+    with text when is_binary(text) <- text(value),
+         [number | _] <- String.split(text, ~r/(x|ext|extension|#)/i, parts: 2) do
+      case String.replace(number, ~r/[^0-9]/, "") do
+        <<"1", rest::binary-10>> -> rest
+        digits when byte_size(digits) >= 7 -> digits
+        _ -> nil
+      end
+    else
+      _ -> nil
+    end
+  end
 
   def value(:zip, value) do
-    case digits(value, 5, :at_least) do
-      nil -> nil
-      digits -> String.slice(digits, 0, 5)
+    case digits(value) do
+      digits when byte_size(digits) in [4, 8] -> String.slice("0" <> digits, 0, 5)
+      digits when byte_size(digits) >= 5 -> String.slice(digits, 0, 5)
+      _ -> nil
     end
   end
 
   def value(:sex, value) do
     case string(value) do
-      "MALE" -> "M"
-      "FEMALE" -> "F"
-      other -> other
+      sex when sex in ["M", "MALE"] -> "M"
+      sex when sex in ["F", "FEMALE"] -> "F"
+      sex when sex in @unknown_sex -> nil
+      nil -> nil
+      other -> if Regex.match?(~r/^[0-9]+$/, other), do: nil, else: other
     end
   end
 
   def value(_, value), do: string(value)
 
-  @doc "Trims, uppercases, removes punctuation and collapses whitespace; empty text becomes nil."
-  def string(value) when is_binary(value) do
-    case value
-         |> String.trim()
-         |> String.upcase()
-         |> String.replace(~r/[^\p{L}\p{N}\s]/u, "")
-         |> String.replace(~r/\s+/u, " ")
-         |> String.trim() do
-      "" -> nil
-      text -> text
+  @doc "Folds accents, uppercases, drops apostrophes, turns other punctuation into spaces and collapses whitespace; empty text becomes nil."
+  def string(value) do
+    case text(value) do
+      nil ->
+        nil
+
+      text ->
+        case text
+             |> fold()
+             |> String.upcase()
+             |> String.replace(~r/['’`]/u, "")
+             |> String.replace(~r/[^\p{L}\p{N}]+/u, " ")
+             |> String.trim() do
+          "" -> nil
+          text -> text
+        end
     end
   end
 
-  def string(_), do: nil
+  @doc "Removes diacritics: JOSÉ, JOSÉ (decomposed) and JOSE are equal."
+  def fold(text) do
+    text
+    |> :unicode.characters_to_nfd_binary()
+    |> String.replace(~r/\p{M}/u, "")
+    |> then(fn text -> Enum.reduce(@folds, text, fn {a, b}, t -> String.replace(t, a, b) end) end)
+  end
 
-  @doc "Parses Date structs, year/month/day maps, ISO dates or MM/DD/YYYY strings; invalid dates become nil."
+  @doc """
+  Splits a name into its letters (spaces, hyphens and particles removed, so
+  `DE LA CRUZ` equals `DELACRUZ` and `SMITH-JONES` equals `SMITHJONES`) and a
+  generational suffix taken from the last token.
+  """
+  def name(value) do
+    case string(value) do
+      nil ->
+        {nil, nil}
+
+      text ->
+        {tokens, suffix} = text |> String.split(" ") |> split_suffix()
+
+        case tokens |> Enum.join() |> String.replace(~r/\P{L}/u, "") do
+          "" -> {nil, suffix}
+          name -> {name, suffix}
+        end
+    end
+  end
+
+  defp split_suffix(tokens) when length(tokens) > 1 do
+    case Map.fetch(@suffixes, List.last(tokens)) do
+      {:ok, suffix} -> {Enum.drop(tokens, -1), suffix}
+      :error -> {tokens, nil}
+    end
+  end
+
+  defp split_suffix(tokens), do: {tokens, nil}
+
+  defp ssn(value) do
+    case digits(value) do
+      <<_::binary-9>> = ssn -> {ssn, nil}
+      <<_::binary-4>> = last4 -> {nil, last4}
+      _ -> {nil, nil}
+    end
+  end
+
+  @doc "Alphanumeric MRN with leading zeros after any letter prefix removed (`HA000123` equals `HA123`)."
+  def mrn(value) do
+    case string(value) do
+      nil ->
+        nil
+
+      text ->
+        compact = String.replace(text, " ", "")
+
+        case Regex.replace(~r/^(\p{L}*)0+(?=[0-9A-Z])/u, compact, "\\1") do
+          "" -> nil
+          mrn -> mrn
+        end
+    end
+  end
+
+  @doc """
+  Parses dates, returning `%{year:, month:, day:}` or nil. Accepts Date-like
+  structs and maps, ISO dates and datetimes, `YYYY/MM/DD`, `YYYYMMDD`,
+  `MMDDYYYY`, and month-first `M/D/YYYY` with `/`, `-` or `.` separators.
+  A first number over 12 is read as the day (`25/12/1980`). Dates before
+  1880 or after today are nil.
+  """
   def date(%{year: y, month: m, day: d}) when is_integer(y) and is_integer(m) and is_integer(d) do
-    case Date.new(y, m, d) do
-      {:ok, _date} -> %{year: y, month: m, day: d}
+    with {:ok, date} <- Date.new(y, m, d),
+         true <- y >= @min_year and Date.compare(date, Date.utc_today()) != :gt do
+      %{year: y, month: m, day: d}
+    else
       _ -> nil
     end
   end
@@ -63,33 +217,40 @@ defmodule PatientMatching.Normalize do
   def date(value) when is_binary(value) do
     value = String.trim(value)
 
-    case Date.from_iso8601(value) do
-      {:ok, date} ->
-        date(date)
+    cond do
+      match = Regex.run(~r/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})(?:[T ].*)?$/, value) ->
+        [_, y, m, d] = match
+        ymd(y, m, d)
 
-      _ ->
-        case Regex.run(~r/^(\d{2})\/(\d{2})\/(\d{4})$/, value) do
-          [_, m, d, y] ->
-            date(%{
-              year: String.to_integer(y),
-              month: String.to_integer(m),
-              day: String.to_integer(d)
-            })
+      match = Regex.run(~r/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/, value) ->
+        [_, a, b, y] = match
+        if int(a) > 12 and int(b) <= 12, do: ymd(y, b, a), else: ymd(y, a, b)
 
-          _ ->
-            nil
-        end
+      match = Regex.run(~r/^(\d{4})(\d{2})(\d{2})$/, value) ->
+        [_, y, m, d] = match
+        ymd(y, m, d) || mdy_compact(value)
+
+      true ->
+        nil
     end
   end
 
   def date(_), do: nil
 
-  defp digits(value, n, mode) when is_binary(value) do
-    text = String.replace(value, ~r/[^0-9]/, "")
+  defp mdy_compact(<<m::binary-2, d::binary-2, y::binary-4>>), do: ymd(y, m, d)
 
-    if (mode == :exact and byte_size(text) == n) or (mode == :at_least and byte_size(text) >= n),
-      do: text
+  defp ymd(y, m, d), do: date(%{year: int(y), month: int(m), day: int(d)})
+
+  defp int(text), do: String.to_integer(text)
+
+  defp digits(value) do
+    case text(value) do
+      nil -> nil
+      text -> String.replace(text, ~r/[^0-9]/, "")
+    end
   end
 
-  defp digits(_, _, _), do: nil
+  defp text(value) when is_binary(value), do: value
+  defp text(value) when is_integer(value), do: Integer.to_string(value)
+  defp text(_), do: nil
 end

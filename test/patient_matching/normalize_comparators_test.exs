@@ -7,8 +7,8 @@ defmodule PatientMatching.NormalizeComparatorsTest do
       id: {:file, 1},
       given_name: "  Anne--Marie   O'Neil! ",
       dob: "02/29/2024",
-      phone: "+1 (212) 555-1212",
-      ssn: "123-45-6789",
+      phone: "+1 (212) 867-5309",
+      ssn: "212-45-6789",
       zip: "02139-1234",
       sex: "female"
     }
@@ -16,10 +16,10 @@ defmodule PatientMatching.NormalizeComparatorsTest do
     result = Normalize.record(raw)
     assert result.given_name == raw.given_name
     refute Map.has_key?(raw, :normalized)
-    assert result.normalized.given_name == "ANNEMARIE ONEIL"
+    assert result.normalized.given_name == "ANNEMARIEONEIL"
     assert result.normalized.dob == %{year: 2024, month: 2, day: 29}
-    assert result.normalized.phone == "12125551212"
-    assert result.normalized.ssn == "123456789"
+    assert result.normalized.phone == "2128675309"
+    assert result.normalized.ssn == "212456789"
     assert result.normalized.zip == "02139"
     assert result.normalized.sex == "F"
 

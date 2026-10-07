@@ -5,9 +5,9 @@ defmodule PatientMatching.BlockingLinkingTest do
 
   test "OR of ANDs, nil isolation, deduplication and arbitrary-id ordering" do
     records = [
-      %{id: 10, family_name: "Smith", dob: "2000-01-01", phone: "5551212"},
-      %{id: 2, family_name: "Smyth", dob: "2000-02-01", phone: "5551212"},
-      %{id: {:x, 3}, family_name: "Else", dob: "2001-01-01", phone: "5551212"},
+      %{id: 10, family_name: "Smith", dob: "2000-01-01", phone: "8675309"},
+      %{id: 2, family_name: "Smyth", dob: "2000-02-01", phone: "8675309"},
+      %{id: {:x, 3}, family_name: "Else", dob: "2001-01-01", phone: "8675309"},
       %{id: "nil1"},
       %{id: "nil2"}
     ]

@@ -36,7 +36,7 @@ defmodule PatientMatching.TestModels do
         }
       },
       term_frequencies: %{family_name: %{"SMITH" => 0.1, "RARE" => 0.001}},
-      trained: %{lambda_source: :fixed, unstable: false, em_iters: 0}
+      trained: %{lambda_source: :fixed, unstable: false, em_iters: 0, tf_records: 1000}
     }
   end
 end

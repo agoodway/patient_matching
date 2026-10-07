@@ -14,7 +14,7 @@ defmodule PatientMatching.Model do
   @doc "Serializes parameters, level names/flags, term frequencies and training status; functions are omitted."
   def dump(model) do
     Jason.encode!(%{
-      version: 1,
+      version: 2,
       lambda: model.lambda,
       comparisons: signature(model.comparisons),
       parameters: model.parameters,
@@ -60,7 +60,7 @@ defmodule PatientMatching.Model do
   end
 
   defp validate_header!(data, config) do
-    true = data["version"] == 1
+    true = data["version"] == 2
     true = data["comparisons"] == signature(config.comparisons)
     lambda = data["lambda"]
     true = is_number(lambda) and lambda >= 1.0e-6 and lambda <= 0.5
@@ -129,7 +129,14 @@ defmodule PatientMatching.Model do
       end
 
     true = is_boolean(raw["unstable"]) and is_integer(raw["em_iters"]) and raw["em_iters"] >= 0
-    %{lambda_source: source, unstable: raw["unstable"], em_iters: raw["em_iters"]}
+    true = is_integer(raw["tf_records"]) and raw["tf_records"] > 0
+
+    %{
+      lambda_source: source,
+      unstable: raw["unstable"],
+      em_iters: raw["em_iters"],
+      tf_records: raw["tf_records"]
+    }
   end
 
   defp field_names(comparisons),

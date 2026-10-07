@@ -47,8 +47,11 @@ defmodule PatientMatching.Scorer do
     {%{field: comparison.field, level: level.name, m: m, u: u, weight: log2(m / u)}, tf}
   end
 
+  # A value never seen in training is treated as appearing once in it, not as
+  # vanishingly rare: an unseen name is weak evidence that it is unusual.
   defp tf_adjustment(field, value, u, model) do
-    tf = model.term_frequencies |> Map.get(field, %{}) |> Map.get(value, @floor)
+    unseen = 1 / max(Map.get(model.trained, :tf_records, 1 / @floor), 1)
+    tf = model.term_frequencies |> Map.get(field, %{}) |> Map.get(value, unseen)
     %{field: field, value: value, adjustment: log2(u / max(tf, @floor))}
   end
 

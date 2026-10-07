@@ -96,7 +96,14 @@ defmodule PatientMatching do
   Each cluster contains a stable smallest `root_id` and sorted `member_ids`.
   """
   def dedupe(records, model, opts \\ []) do
-    result = Linker.score(Blocking.prepare(records), :dedupe_only, model, opts)
+    result =
+      Linker.score(
+        Blocking.prepare(records, model.config.placeholders),
+        :dedupe_only,
+        model,
+        opts
+      )
+
     Map.put(result, :clusters, Cluster.clusters(result.matches))
   end
 

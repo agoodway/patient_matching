@@ -4,7 +4,7 @@ defmodule PatientMatching.Blocking do
   alias PatientMatching.{Comparators, Normalize}
 
   @doc "Normalizes a file and rejects records with missing or duplicate ids."
-  def prepare(records) when is_list(records) do
+  def prepare(records, placeholders \\ :default) when is_list(records) do
     {_ids, normalized} =
       Enum.reduce(records, {MapSet.new(), []}, fn record, {ids, normalized} ->
         unless is_map(record) and Map.has_key?(record, :id),
@@ -13,7 +13,7 @@ defmodule PatientMatching.Blocking do
         if MapSet.member?(ids, record.id),
           do: raise(ArgumentError, "duplicate ids in file of #{length(records)} records")
 
-        {MapSet.put(ids, record.id), [Normalize.record(record) | normalized]}
+        {MapSet.put(ids, record.id), [Normalize.record(record, placeholders) | normalized]}
       end)
 
     Enum.reverse(normalized)
@@ -23,15 +23,17 @@ defmodule PatientMatching.Blocking do
   def pairs(records, rules, link_type, opts \\ []),
     do: candidates(records, rules, link_type, opts).pairs
 
-  @doc "Returns blocked pairs and the number of blocks omitted for exceeding max_block_size."
+  @doc "Returns blocked pairs and the number of blocks omitted for exceeding max_block_size. Accepts `:placeholders` for normalization."
   def candidates(records, rules, link_type, opts \\ []) do
+    placeholders = Keyword.get(opts, :placeholders, :default)
+
     prepared =
       case {link_type, records} do
         {:dedupe_only, records} when is_list(records) ->
-          prepare(records)
+          prepare(records, placeholders)
 
         {:link_only, {left, right}} ->
-          {prepare(left), prepare(right)}
+          {prepare(left, placeholders), prepare(right, placeholders)}
 
         _ ->
           raise ArgumentError, "blocking expects a file for dedupe or {left, right} for linking"
@@ -110,9 +112,11 @@ defmodule PatientMatching.Blocking do
     end
   end
 
+  def key(record, :given_soundex), do: Comparators.soundex(record.normalized[:given_name])
+
   def key(record, :ssn_last4) do
     case record.normalized[:ssn] do
-      nil -> nil
+      nil -> record.normalized[:ssn_partial]
       ssn -> String.slice(ssn, -4, 4)
     end
   end

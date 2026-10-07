@@ -14,7 +14,7 @@ defmodule PatientMatching.Presets do
       name(:family_name),
       name(:given_name),
       comparison(:dob, [
-        exact(),
+        exact(true),
         level(:within_1_day, &Comparators.within_days?(&1, &2, 1)),
         level(:same_year_month, &Comparators.same_year_month?/2)
       ]),

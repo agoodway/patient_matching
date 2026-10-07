@@ -68,7 +68,7 @@ defmodule PatientMatching.EdgeCasesTest do
              :same_year_month
   end
 
-  test "unseen exact TF values use floor and common values can reduce evidence" do
+  test "unseen exact TF values count as seen once in training; common values reduce evidence" do
     model = TestModels.fixed(tf: true)
 
     unseen =
@@ -79,7 +79,7 @@ defmodule PatientMatching.EdgeCasesTest do
       )
 
     assert_in_delta hd(unseen.tf_adjustments).adjustment,
-                    :math.log(100_000) / :math.log(2),
+                    :math.log(0.1 / 0.001) / :math.log(2),
                     1.0e-9
 
     model = put_in(model.term_frequencies.family_name["SMITH"], 0.5)

@@ -4,5 +4,11 @@ defmodule PatientMatching.Explain do
 
   @doc "Normalizes raw maps and returns their score with comparison evidence even for MRN overrides."
   def explain(left, right, model),
-    do: Scorer.score(Normalize.record(left), Normalize.record(right), model, explain: true)
+    do:
+      Scorer.score(
+        Normalize.record(left, model.config.placeholders),
+        Normalize.record(right, model.config.placeholders),
+        model,
+        explain: true
+      )
 end

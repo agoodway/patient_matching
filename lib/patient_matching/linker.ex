@@ -7,10 +7,22 @@ defmodule PatientMatching.Linker do
   def link(left, right, model, opts \\ []) do
     type = Keyword.get(opts, :link_type, :link_only)
 
+    placeholders = model.config.placeholders
+
     case type do
-      :link_only -> score({Blocking.prepare(left), Blocking.prepare(right)}, type, model, opts)
-      :dedupe_only -> score(Blocking.prepare(left ++ right), type, model, opts)
-      _ -> raise ArgumentError, "invalid link_type"
+      :link_only ->
+        score(
+          {Blocking.prepare(left, placeholders), Blocking.prepare(right, placeholders)},
+          type,
+          model,
+          opts
+        )
+
+      :dedupe_only ->
+        score(Blocking.prepare(left ++ right, placeholders), type, model, opts)
+
+      _ ->
+        raise ArgumentError, "invalid link_type"
     end
   end
 
