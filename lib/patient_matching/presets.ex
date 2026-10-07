@@ -3,8 +3,10 @@ defmodule PatientMatching.Presets do
   Patient comparison levels and blocking rules for probabilistic record linkage.
 
   `patient_mpi/1` accepts any `PatientMatching.Config` field as an override.
-  Name exact levels use term frequencies. Training blocks on birth year only;
-  prediction uses four alternative rules and defaults to linking two files.
+  Name and DOB exact levels use term frequencies. Training runs one EM session
+  blocked on birth year (estimating everything but DOB) and one blocked on
+  name (estimating DOB and the rest); prediction uses alternative rules and
+  defaults to linking two files.
   """
   alias PatientMatching.{Comparators, Comparison, Config, Level}
 
@@ -32,7 +34,7 @@ defmodule PatientMatching.Presets do
         [:phone],
         [:ssn_last4, :dob_year]
       ],
-      training_blocking: [[:dob_year]]
+      training_blocking: [[:dob_year], [:family_soundex, :given_name3]]
     ]
 
     Config.new(Keyword.merge(defaults, overrides))

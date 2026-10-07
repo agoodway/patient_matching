@@ -20,7 +20,7 @@ defmodule PatientMatchingEval.Report do
       rule("#{m.name}#{if m.diagnostic, do: " (diagnostic)", else: ""} — #{m.kind}"),
       m.description,
       "records #{int(m.records)} · true pairs #{int(m.true_pairs)} · train #{secs(m.timings.train_ms)} · score #{secs(m.timings.score_ms)}",
-      "model   λ=#{sig(m.model.lambda)} (#{m.model.trained.lambda_source}) · EM iters #{m.model.trained.em_iters} · unstable=#{m.model.trained.unstable}",
+      "model   λ=#{sig(m.model.lambda)} (#{m.model.trained.lambda_source}) · λ in training blocks #{Enum.map_join(Map.get(m.model.trained, :lambda_train, []), "/", &sig/1)} · EM iters #{m.model.trained.em_iters} · unstable=#{m.model.trained.unstable}",
       "block   #{int(m.candidates)} candidates · blocking recall #{pct(m.blocking_recall)} · dropped blocks #{m.dropped_blocks}",
       "decide  auto-match #{int(m.matches)} (precision #{pct(m.precision)}, recall #{pct(m.recall)}, F1 #{pct(m.f1)})",
       "        review #{int(m.review)} (#{int(m.review_true)} true) · recall incl. review #{pct(m.recall_with_review)}",

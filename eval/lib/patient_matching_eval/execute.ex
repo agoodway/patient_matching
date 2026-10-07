@@ -88,15 +88,12 @@ defmodule PatientMatchingEval.Execute do
     |> MapSet.new(&Dataset.key(kind, &1))
   end
 
-  defp train_opts(%{"train" => %{"lambda" => "oracle_" <> which}}, dataset, records, config) do
-    rules = if which == "training", do: config.training_blocking, else: config.blocking
-
-    pairs =
-      Blocking.candidates(records, rules, :dedupe_only, max_block_size: config.max_block_size).pairs
-
+  # The true probability that two random records in the training file are the
+  # same person, which is what the trained prior estimates.
+  defp train_opts(%{"train" => %{"lambda" => "oracle"}}, dataset, records, _config) do
+    n = length(records)
     truth = Dataset.true_pairs_dedupe(dataset, records)
-    hits = Enum.count(pairs, &MapSet.member?(truth, Dataset.key(:dedupe, &1)))
-    [lambda: max(hits / max(length(pairs), 1), 1.0e-6)]
+    [lambda: max(MapSet.size(truth) / max(div(n * (n - 1), 2), 1), 1.0e-9)]
   end
 
   defp train_opts(%{"train" => %{"lambda" => value}}, _, _, _) when is_number(value),

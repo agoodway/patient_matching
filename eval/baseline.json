@@ -36,7 +36,7 @@
     "placeholder-ssn": true,
     "chinese-order-swap": true,
     "itin-then-ssn": true,
-    "parent-child-phone-different-surname": false,
+    "parent-child-phone-different-surname": true,
     "dob-estimated-jan1": true,
     "junior-senior-missing-dob": false,
     "married-name-no-ssn": true,
@@ -65,7 +65,7 @@
     "suffix-in-surname": true,
     "sex-error": true,
     "borrowed-ssn": true,
-    "clinic-phone": false,
+    "clinic-phone": true,
     "typo-first-letter": false,
     "nick-bob-robert": true,
     "newborn-vs-mother": false,
@@ -86,61 +86,61 @@
   },
   "runs": {
     "county_hospital_duplicates": {
-      "precision": 0.5882352941176471,
+      "precision": 0.9733333333333334,
       "blocking_recall": 0.9411764705882353,
-      "recall": 0.9411764705882353,
-      "recall_with_review": 0.9411764705882353,
-      "false_matches": 56,
-      "review": 42
+      "recall": 0.8588235294117647,
+      "recall_with_review": 0.9176470588235294,
+      "false_matches": 2,
+      "review": 8
     },
     "county_hospital_x_fqhc": {
-      "precision": 0.7068403908794788,
+      "precision": 0.9336283185840708,
       "blocking_recall": 0.9730941704035875,
-      "recall": 0.9730941704035875,
+      "recall": 0.9461883408071748,
       "recall_with_review": 0.9730941704035875,
-      "false_matches": 90,
-      "review": 38
+      "false_matches": 15,
+      "review": 25
     },
     "enterprise_mpi": {
-      "precision": 0.5969350197416851,
+      "precision": 0.8476536366242952,
       "blocking_recall": 0.9774320771253286,
-      "recall": 0.9772129710780018,
-      "recall_with_review": 0.9774320771253286,
-      "false_matches": 6023,
-      "review": 3252
+      "recall": 0.9716257668711656,
+      "recall_with_review": 0.9761174408413672,
+      "false_matches": 1594,
+      "review": 1695
     },
     "enterprise_mpi_oracle_lambda": {
-      "precision": 0.7225194552529183,
+      "precision": 0.8515564950038432,
       "blocking_recall": 0.9774320771253286,
-      "recall": 0.9764460999123575,
-      "recall_with_review": 0.976774758983348,
-      "false_matches": 3423,
-      "review": 1762
+      "recall": 0.970968448729185,
+      "recall_with_review": 0.9761174408413672,
+      "false_matches": 1545,
+      "review": 1674
     },
     "hospital_a_x_county_hospital": {
-      "precision": 0.4397677793904209,
+      "precision": 0.7105882352941176,
       "blocking_recall": 0.9742765273311897,
-      "recall": 0.9742765273311897,
+      "recall": 0.9710610932475884,
       "recall_with_review": 0.9742765273311897,
-      "false_matches": 386,
-      "review": 165
+      "false_matches": 123,
+      "review": 130
     },
     "pharmacy_x_payer": {
-      "precision": 0.7220630372492837,
+      "precision": 0.8715980460572226,
       "blocking_recall": 0.9936908517350158,
-      "recall": 0.9936908517350158,
-      "recall_with_review": 0.9936908517350158,
-      "false_matches": 485,
-      "review": 360
+      "recall": 0.9850157728706624,
+      "recall_with_review": 0.9913249211356467,
+      "false_matches": 184,
+      "review": 123
     },
     "reference_lab_x_hospital_a": {
-      "precision": 0.7145708582834331,
+      "precision": 0.8840399002493765,
       "blocking_recall": 0.9521276595744681,
-      "recall": 0.9521276595744681,
-      "recall_with_review": 0.9521276595744681,
-      "false_matches": 286,
-      "review": 220
+      "recall": 0.9428191489361702,
+      "recall_with_review": 0.9507978723404256,
+      "false_matches": 93,
+      "review": 69
     }
   },
-  "saved_at": "2026-10-07T18:29:41Z"
+  "saved_at": "2026-10-07T18:33:41Z"
 }

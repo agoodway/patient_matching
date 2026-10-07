@@ -45,6 +45,7 @@ defmodule PatientMatching.Blocking do
   @doc "Builds candidates from already normalized and validated records."
   def candidates_prepared(records, rules, link_type, opts \\ []) do
     maximum = Keyword.get(opts, :max_block_size, 500)
+    oversized = Keyword.get(opts, :oversized, :drop)
 
     {pairs, dropped} =
       rules
@@ -53,7 +54,7 @@ defmodule PatientMatching.Blocking do
         records
         |> block_index(rule, link_type)
         |> Enum.reduce(acc, fn block, acc ->
-          emit_block(block, acc, rule_index, link_type, maximum)
+          emit_block(block, acc, rule_index, link_type, maximum, oversized)
         end)
       end)
 
@@ -66,7 +67,16 @@ defmodule PatientMatching.Blocking do
     Map.merge(index(left, rule, :left), index(right, rule, :right), fn _, a, b -> a ++ b end)
   end
 
-  defp emit_block({key, members}, {pairs, dropped}, rule_index, link_type, maximum) do
+  defp emit_block({key, members}, acc, rule_index, link_type, maximum, {:sample, seed})
+       when maximum != :infinity and length(members) > maximum do
+    # Training only needs a representative share of an oversized block.
+    members
+    |> Enum.sort_by(&:erlang.phash2({seed, rule_index, &1}))
+    |> Enum.take(maximum)
+    |> then(&emit_block({key, &1}, acc, rule_index, link_type, maximum, :drop))
+  end
+
+  defp emit_block({key, members}, {pairs, dropped}, rule_index, link_type, maximum, _oversized) do
     count = length(members)
 
     if maximum != :infinity and count > maximum do
@@ -99,6 +109,20 @@ defmodule PatientMatching.Blocking do
 
   @doc "Orders pairs by their left and right id sort keys."
   def sort_pairs(pairs), do: Enum.sort_by(pairs, fn {a, b} -> {sort_key(a), sort_key(b)} end)
+
+  @doc "Normalized fields a blocking rule's keys are derived from; key functions are opaque."
+  def rule_fields(rule) do
+    rule
+    |> Enum.flat_map(fn
+      key when key in [:dob_year, :dob] -> [:dob]
+      key when key in [:family_soundex, :family_name] -> [:family_name]
+      key when key in [:given_name3, :given_soundex, :given_name] -> [:given_name]
+      key when key in [:ssn_last4, :ssn] -> [:ssn, :ssn_partial]
+      key when is_atom(key) -> [key]
+      _function -> []
+    end)
+    |> Enum.uniq()
+  end
 
   @doc "Evaluates a normalized field, derived blocking key, or caller-supplied key function."
   def key(record, function) when is_function(function, 1), do: function.(record)

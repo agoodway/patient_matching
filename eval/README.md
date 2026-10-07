@@ -22,7 +22,7 @@ mix eval.refdata                   # re-download the public name tables (network
 | run | kind | models |
 |---|---|---|
 | `enterprise_mpi` | dedupe | all six sources in one master patient index |
-| `enterprise_mpi_oracle_lambda` | dedupe | same, prior fixed to the true training-pair match rate (diagnostic) |
+| `enterprise_mpi_oracle_lambda` | dedupe | same, prior fixed to the true random-pair match rate (diagnostic) |
 | `county_hospital_duplicates` | dedupe | duplicate registrations inside one safety-net hospital |
 | `hospital_a_x_county_hospital` | link | HIE between a private system and the county system |
 | `county_hospital_x_fqhc` | link | safety-net referrals to community clinics |
@@ -136,7 +136,6 @@ from ACS.
   `lib/patient_matching_eval/records.ex` or `population.ex` and give it a tag.
   It appears in the tag table automatically.
 - **New run:** add it to `suite.json`. A run can set
-  `"train": {"lambda": ...}` to a number, `"oracle_training"` or
-  `"oracle_candidates"`.
+  `"train": {"lambda": ...}` to a number or `"oracle"`.
 
 Ground truth exists only in this directory. The matcher never sees `truth.jsonl` or `people.jsonl`.

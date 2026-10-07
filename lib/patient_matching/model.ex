@@ -63,7 +63,7 @@ defmodule PatientMatching.Model do
     true = data["version"] == 2
     true = data["comparisons"] == signature(config.comparisons)
     lambda = data["lambda"]
-    true = is_number(lambda) and lambda >= 1.0e-6 and lambda <= 0.5
+    true = is_number(lambda) and lambda >= 1.0e-9 and lambda <= 0.5
   end
 
   defp load_parameters(raw, comparisons) do
@@ -130,12 +130,15 @@ defmodule PatientMatching.Model do
 
     true = is_boolean(raw["unstable"]) and is_integer(raw["em_iters"]) and raw["em_iters"] >= 0
     true = is_integer(raw["tf_records"]) and raw["tf_records"] > 0
+    lambda_train = Map.get(raw, "lambda_train", [])
+    true = is_list(lambda_train) and Enum.all?(lambda_train, &probability?/1)
 
     %{
       lambda_source: source,
       unstable: raw["unstable"],
       em_iters: raw["em_iters"],
-      tf_records: raw["tf_records"]
+      tf_records: raw["tf_records"],
+      lambda_train: Enum.map(lambda_train, &(&1 * 1.0))
     }
   end
 

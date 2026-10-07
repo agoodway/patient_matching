@@ -2,8 +2,13 @@ defmodule PatientMatching.Trainer do
   @moduledoc false
   alias PatientMatching.{Blocking, Comparison, Config, Model, Scorer}
   @floor 1.0e-6
+  @min_lambda 1.0e-9
+  @max_lambda 0.5
 
-  @doc "Estimates a model from one file using a fixed or deterministic prior, random-pair u and pattern-count EM."
+  @doc """
+  Estimates a model from one file: a random-pair prior, random-pair u, and m
+  from one EM session per training blocking rule.
+  """
   def train(records, config, opts \\ []) do
     config = Config.validate!(config)
     records = Blocking.prepare(records, config.placeholders)
@@ -13,30 +18,20 @@ defmodule PatientMatching.Trainer do
     if config.comparisons == [],
       do: raise(ArgumentError, "training requires comparisons, got 0 for #{n} records")
 
-    prediction =
-      Blocking.candidates_prepared(records, config.blocking, :dedupe_only,
-        max_block_size: config.max_block_size
-      )
+    deterministic = deterministic_pairs(records, config)
+    sessions = Enum.map(config.training_blocking, &session(records, &1, config))
 
-    training =
-      Blocking.candidates_prepared(records, config.training_blocking, :dedupe_only,
-        max_block_size: config.max_block_size
-      )
-
-    if prediction.pairs == [],
-      do: raise(ArgumentError, "0 prediction candidate pairs for #{n} records")
-
-    if training.pairs == [],
+    if Enum.all?(sessions, &(&1.pairs == [])),
       do: raise(ArgumentError, "0 training candidate pairs for #{n} records")
 
     {lambda, source} =
       if Keyword.has_key?(opts, :lambda) do
         {clamp_lambda(Keyword.fetch!(opts, :lambda)), :fixed}
       else
-        {estimate_lambda_prepared(records, config, length(prediction.pairs)), :deterministic}
+        {lambda_from(deterministic, n, config), :deterministic}
       end
 
-    u = estimate_u_prepared(records, config)
+    u = estimate_u_prepared(records, config, deterministic)
     m = initial_m(config, Keyword.get(opts, :m_init, %{}))
 
     parameters =
@@ -50,39 +45,117 @@ defmodule PatientMatching.Trainer do
       comparisons: config.comparisons,
       parameters: parameters,
       term_frequencies: term_frequencies_prepared(records, config),
-      trained: %{lambda_source: source, unstable: false, em_iters: 0, tf_records: n}
+      trained: %{
+        lambda_source: source,
+        unstable: false,
+        em_iters: 0,
+        tf_records: n,
+        lambda_train: []
+      }
     }
 
-    estimate_m(pattern_counts_prepared(records, training.pairs, config), model, config)
+    deterministic = MapSet.new(deterministic)
+
+    sessions
+    |> Enum.reject(&(&1.pairs == []))
+    |> Enum.map(fn session ->
+      hits = Enum.count(session.pairs, &MapSet.member?(deterministic, &1))
+      start = clamp_train(hits / length(session.pairs) / config.lambda_recall)
+
+      patterns = pattern_counts_prepared(records, session.pairs, config)
+
+      %{
+        estimated: session.fields,
+        model: estimate_m(patterns, model, config, fields: session.fields, lambda_train: start)
+      }
+    end)
+    |> combine_sessions(model, config)
   end
 
-  @doc "Rough prior from deterministic agreements divided by prediction candidate count and recall; not a likelihood. Single-file training uses within-file pairs, even for a link_only config."
+  # Fields a blocking rule conditions on can't be estimated from its pairs:
+  # every pair agrees on them, matches or not.
+  defp session(records, rule, config) do
+    blocked =
+      Blocking.candidates_prepared(records, [rule], :dedupe_only,
+        max_block_size: config.max_block_size,
+        oversized: {:sample, config.seed}
+      )
+
+    used = Blocking.rule_fields(rule)
+
+    fields =
+      for c <- config.comparisons, not Enum.any?(List.wrap(c.field), &(&1 in used)), do: c.field
+
+    %{pairs: blocked.pairs, fields: fields}
+  end
+
+  # Averages each field's m over the sessions that estimated it.
+  defp combine_sessions(results, model, config) do
+    parameters =
+      Map.new(config.comparisons, fn comparison ->
+        field = comparison.field
+        estimates = for r <- results, field in r.estimated, do: r.model.parameters[field]
+
+        params =
+          case estimates do
+            [] ->
+              model.parameters[field]
+
+            _ ->
+              masses =
+                Map.new(model.parameters[field], fn {level, _} ->
+                  {level, Enum.sum(Enum.map(estimates, & &1[level].m)) / length(estimates)}
+                end)
+                |> distribution()
+
+              Map.new(masses, fn {level, m} ->
+                {level, %{model.parameters[field][level] | m: m}}
+              end)
+          end
+
+        {field, params}
+      end)
+
+    %{
+      model
+      | parameters: parameters,
+        trained:
+          Map.merge(model.trained, %{
+            em_iters: Enum.sum(Enum.map(results, & &1.model.trained.em_iters)),
+            unstable: Enum.any?(results, & &1.model.trained.unstable),
+            lambda_train: Enum.map(results, & &1.model.trained.lambda_train)
+          })
+    }
+  end
+
+  @doc """
+  Prior probability that two random records in the file are the same patient:
+  deterministic agreements (same name and DOB, or same SSN) over all n(n-1)/2
+  pairs, divided by `lambda_recall`. This is the prior that matches u, which
+  is also estimated from random pairs.
+  """
   def estimate_lambda(records, config) do
     records = Blocking.prepare(records, config.placeholders)
-
-    budget =
-      Blocking.candidates_prepared(records, config.blocking, :dedupe_only,
-        max_block_size: config.max_block_size
-      ).pairs
-      |> length()
-
-    estimate_lambda_prepared(records, config, budget)
+    lambda_from(deterministic_pairs(records, config), length(records), config)
   end
 
-  defp estimate_lambda_prepared(records, config, budget) do
-    count =
-      Blocking.candidates_prepared(
-        records,
-        [[:family_name, :given_name, :dob], [:ssn]],
-        :dedupe_only,
-        max_block_size: :infinity
-      ).pairs
-      |> length()
+  defp lambda_from(pairs, n, config),
+    do: clamp_lambda(length(pairs) / max(div(n * (n - 1), 2), 1) / config.lambda_recall)
 
-    clamp_lambda(count / max(budget, 1) / config.lambda_recall)
+  defp deterministic_pairs(records, config) do
+    Blocking.candidates_prepared(
+      records,
+      [[:family_name, :given_name, :dob], [:ssn]],
+      :dedupe_only,
+      max_block_size: config.max_block_size
+    ).pairs
   end
 
-  defp clamp_lambda(value) when is_number(value), do: min(0.5, max(@floor, value * 1.0))
+  defp clamp_train(value), do: min(0.99, max(@floor, value))
+
+  defp clamp_lambda(value) when is_number(value),
+    do: min(@max_lambda, max(@min_lambda, value * 1.0))
+
   defp clamp_lambda(_), do: raise(ArgumentError, "lambda must be numeric")
 
   @doc "Uniform unordered pairs without replacement; a local RNG leaves caller state untouched."
@@ -117,12 +190,19 @@ defmodule PatientMatching.Trainer do
   end
 
   @doc "Estimates non-null level frequencies from unblocked random pairs and floors each field distribution."
-  def estimate_u(records, config),
-    do: records |> Blocking.prepare(config.placeholders) |> estimate_u_prepared(config)
+  def estimate_u(records, config) do
+    records = Blocking.prepare(records, config.placeholders)
+    estimate_u_prepared(records, config, deterministic_pairs(records, config))
+  end
 
-  defp estimate_u_prepared(records, config) do
+  # Pairs that agree deterministically are probably the same patient, so they
+  # are left out of the non-match sample.
+  defp estimate_u_prepared(records, config, deterministic) do
     index = Map.new(records, &{&1.id, &1})
-    pairs = sample_pairs_prepared(records, config)
+    deterministic = MapSet.new(deterministic)
+
+    pairs =
+      records |> sample_pairs_prepared(config) |> Enum.reject(&MapSet.member?(deterministic, &1))
 
     counts =
       Map.new(config.comparisons, fn comparison ->
@@ -192,22 +272,35 @@ defmodule PatientMatching.Trainer do
     end)
   end
 
-  @doc "EM estimates m alone from pattern counts. Nulls are excluded from each field's denominator; TF is not applied during EM."
-  def estimate_m(patterns, model, config) do
+  @doc """
+  EM over pattern counts. Estimates m for the comparisons in `:fields`
+  (default: all) together with the prior within the training pairs, which
+  starts at `:lambda_train` (default: the model's lambda). u, the model's
+  prediction lambda, and the m of fields outside `:fields` stay fixed. Nulls
+  are excluded from each field's denominator; TF is not applied during EM.
+  """
+  def estimate_m(patterns, model, config, opts \\ []) do
+    fields = Keyword.get(opts, :fields, Enum.map(config.comparisons, & &1.field))
+    lambda_train = Keyword.get(opts, :lambda_train, model.lambda)
+
     initial =
       Map.new(model.parameters, fn {field, params} ->
         {field, Map.new(params, fn {level, params} -> {level, params.m} end)}
       end)
 
-    patterns =
-      Enum.map(patterns, fn {pattern, count} ->
-        {observed_levels(pattern, config.comparisons), count}
-      end)
+    active = Enum.filter(config.comparisons, &(&1.field in fields))
 
-    {estimated, iters} = em(patterns, initial, model, config, 0)
+    patterns =
+      patterns
+      |> Enum.map(fn {pattern, count} ->
+        {observed_levels(pattern, config.comparisons, fields), count}
+      end)
+      |> Enum.reject(fn {observed, _} -> observed == [] end)
+
+    {estimated, lambda_train, iters} = em(patterns, initial, lambda_train, model, config, 0)
 
     {estimated, unstable} =
-      Enum.map_reduce(config.comparisons, false, fn comparison, unstable ->
+      Enum.map_reduce(active, false, fn comparison, unstable ->
         failed =
           Enum.any?(non_null(comparison), fn level ->
             Comparison.exact_style?(level) and
@@ -221,31 +314,41 @@ defmodule PatientMatching.Trainer do
       end)
 
     parameters =
-      Map.new(estimated, fn {field, masses} ->
-        {field,
-         Map.new(masses, fn {level, m} -> {level, %{model.parameters[field][level] | m: m}} end)}
+      Map.new(model.parameters, fn {field, params} ->
+        case List.keyfind(estimated, field, 0) do
+          nil ->
+            {field, params}
+
+          {_, masses} ->
+            {field, Map.new(masses, fn {level, m} -> {level, %{params[level] | m: m}} end)}
+        end
       end)
 
     %{
       model
       | parameters: parameters,
-        trained: Map.merge(model.trained, %{em_iters: iters, unstable: unstable})
+        trained:
+          Map.merge(model.trained, %{
+            em_iters: iters,
+            unstable: unstable,
+            lambda_train: lambda_train
+          })
     }
   end
 
-  defp em(_patterns, masses, _model, config, iters) when iters >= config.em_max_iters,
-    do: {masses, iters}
+  defp em(_patterns, masses, lambda, _model, config, iters) when iters >= config.em_max_iters,
+    do: {masses, lambda, iters}
 
-  defp em(patterns, masses, model, config, iters) do
+  defp em(patterns, masses, lambda, model, config, iters) do
     counts =
       Map.new(masses, fn {field, levels} ->
         {field, Map.new(levels, fn {name, _} -> {name, 0.0} end)}
       end)
 
-    counts =
-      Enum.reduce(patterns, counts, fn {observed, count}, counts ->
+    {counts, matched, total} =
+      Enum.reduce(patterns, {counts, 0.0, 0}, fn {observed, count}, {counts, matched, total} ->
         weight =
-          Scorer.log2(model.lambda / (1 - model.lambda)) +
+          Scorer.log2(lambda / (1 - lambda)) +
             Enum.sum(
               Enum.map(observed, fn {f, l} ->
                 Scorer.log2(masses[f][l] / model.parameters[f][l].u)
@@ -254,9 +357,12 @@ defmodule PatientMatching.Trainer do
 
         expected = count * Scorer.probability(weight)
 
-        Enum.reduce(observed, counts, fn {field, level}, counts ->
-          update_in(counts, [field, level], &(&1 + expected))
-        end)
+        counts =
+          Enum.reduce(observed, counts, fn {field, level}, counts ->
+            update_in(counts, [field, level], &(&1 + expected))
+          end)
+
+        {counts, matched + expected, total + count}
       end)
 
     updated =
@@ -265,20 +371,25 @@ defmodule PatientMatching.Trainer do
          if(Enum.sum(Map.values(levels)) == 0, do: masses[field], else: distribution(levels))}
       end)
 
+    lambda_next = if total == 0, do: lambda, else: clamp_train(matched / total)
     change = for {f, levels} <- updated, {l, mass} <- levels, do: abs(mass - masses[f][l])
+    change = [abs(lambda_next - lambda) | change]
 
-    if Enum.max(change, fn -> 0 end) < config.em_tol,
-      do: {updated, iters + 1},
-      else: em(patterns, updated, model, config, iters + 1)
+    if Enum.max(change) < config.em_tol,
+      do: {updated, lambda_next, iters + 1},
+      else: em(patterns, updated, lambda_next, model, config, iters + 1)
   end
 
-  defp observed_levels(pattern, comparisons) do
+  defp observed_levels(pattern, comparisons, fields) do
     comparisons
     |> Enum.with_index()
     |> Enum.flat_map(fn {comparison, i} ->
       name = elem(pattern, i)
       level = Enum.find(comparison.levels, &(&1.name == name))
-      if level.null_level?, do: [], else: [{comparison.field, name}]
+
+      if level.null_level? or comparison.field not in fields,
+        do: [],
+        else: [{comparison.field, name}]
     end)
   end
 

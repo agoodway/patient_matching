@@ -7,7 +7,7 @@ defmodule PatientMatching.TrainingIntegrationTest do
     records = Synthetic.unlabeled(labeled)
     config = Presets.patient_mpi()
     assert config.link_type == :link_only
-    assert config.training_blocking == [[:dob_year]]
+    assert config.training_blocking == [[:dob_year], [:family_soundex, :given_name3]]
     model = PatientMatching.train(records, config)
     # Use link on two disjoint files so no cluster implementation is needed at this stage.
     {left, right} = Enum.split(records, 200)
@@ -23,7 +23,10 @@ defmodule PatientMatching.TrainingIntegrationTest do
     assert recall >= 0.90, "recall was #{recall}"
     assert precision >= 0.95, "precision was #{precision}"
     assert model.trained.lambda_source == :deterministic
-    assert model.lambda >= 1.0e-6 and model.lambda <= 0.5
+    assert model.lambda >= 1.0e-9 and model.lambda <= 0.5
+    # 30 planted duplicates among 230 records: about 30 / (230 * 229 / 2) / recall.
+    assert_in_delta model.lambda, 30 / (230 * 229 / 2) / 0.7, 0.0005
+    assert [_, _] = model.trained.lambda_train
   end
 
   test "preset blocks fewer than 50,000 pairs on 1,000 random people and retains planted block-sharing pairs" do
@@ -41,7 +44,7 @@ defmodule PatientMatching.TrainingIntegrationTest do
     assert MapSet.subset?(Synthetic.planted_pairs(labeled), pairs)
   end
 
-  test "lambda counts deterministic unions once and divides by prediction pair budget and recall" do
+  test "lambda counts deterministic unions once and divides by all pairs and recall" do
     records = [
       %{id: 1, given_name: "Amy", family_name: "Smith", dob: "2000-01-01", ssn: "123456789"},
       %{id: 2, given_name: "Amy", family_name: "Smith", dob: "2000-01-01", ssn: "123456789"},
@@ -51,7 +54,7 @@ defmodule PatientMatching.TrainingIntegrationTest do
     config = Presets.patient_mpi(blocking: [[fn _ -> :all end]], lambda_recall: 0.8)
     assert_in_delta Trainer.estimate_lambda(records, config), 1 / 3 / 0.8, 1.0e-12
     assert Trainer.estimate_lambda(records, %{config | lambda_recall: 0.1}) == 0.5
-    assert Trainer.estimate_lambda([%{id: 1}, %{id: 2}], config) == 1.0e-6
+    assert Trainer.estimate_lambda([%{id: 1}, %{id: 2}], config) == 1.0e-9
   end
 
   test "train clamps fixed lambda, records its source and accepts m_init" do
@@ -68,11 +71,11 @@ defmodule PatientMatching.TrainingIntegrationTest do
     assert model.trained.lambda_source == :fixed
     assert model.config == config
     assert model.comparisons == config.comparisons
-    assert PatientMatching.train(records, config, lambda: 0.0).lambda == 1.0e-6
+    assert PatientMatching.train(records, config, lambda: 0.0).lambda == 1.0e-9
     assert_raise ArgumentError, fn -> PatientMatching.train(records, config, lambda: "bad") end
   end
 
-  test "training rejects empty, singleton, duplicates and absent prediction/training candidates with counts" do
+  test "training rejects empty, singleton, duplicates and absent training candidates with counts" do
     config = Presets.patient_mpi()
 
     for records <- [[], [%{id: 1}], [%{id: 1}, %{id: 1}], [%{id: 1}, %{id: 2}]] do
@@ -82,8 +85,6 @@ defmodule PatientMatching.TrainingIntegrationTest do
     records = [%{id: 1, family_name: "Smith"}, %{id: 2, family_name: "Smith"}]
     bad = %{TestModels.fixed().config | training_blocking: [[:dob_year]]}
     assert_raise ArgumentError, ~r/0.*2/, fn -> PatientMatching.train(records, bad) end
-    config = Presets.patient_mpi(blocking: [[:ssn]], training_blocking: [[fn _ -> :all end]])
-    assert_raise ArgumentError, ~r/0.*2/, fn -> PatientMatching.train(records, config) end
   end
 
   test "public explain handles raw maps and custom comparisons without a preset" do
@@ -98,5 +99,44 @@ defmodule PatientMatching.TrainingIntegrationTest do
                     1.0e-12
 
     assert PatientMatching.config(comparisons: model.comparisons).comparisons == model.comparisons
+  end
+
+  test "each training session leaves the fields its rule blocks on at their initial m" do
+    records = Synthetic.patients(120, 0.2) |> Synthetic.unlabeled()
+    initial = Trainer.initial_m(Presets.patient_mpi())
+
+    by_year =
+      PatientMatching.train(records, Presets.patient_mpi(training_blocking: [[:dob_year]]))
+
+    for {level, %{m: m}} <- by_year.parameters.dob, do: assert(m == initial.dob[level])
+    refute by_year.parameters.family_name.exact.m == initial.family_name.exact
+
+    by_name =
+      PatientMatching.train(
+        records,
+        Presets.patient_mpi(training_blocking: [[:family_soundex, :given_name3]])
+      )
+
+    for {level, %{m: m}} <- by_name.parameters.family_name,
+        do: assert(m == initial.family_name[level])
+
+    refute by_name.parameters.dob.exact.m == initial.dob.exact
+  end
+
+  test "oversized training blocks are sampled, not dropped" do
+    records = for i <- 1..40, do: %{id: i, dob: "1980-0#{rem(i, 9) + 1}-01"}
+    prepared = Blocking.prepare(records)
+
+    assert Blocking.candidates_prepared(prepared, [[:dob_year]], :dedupe_only, max_block_size: 10).pairs ==
+             []
+
+    sampled =
+      Blocking.candidates_prepared(prepared, [[:dob_year]], :dedupe_only,
+        max_block_size: 10,
+        oversized: {:sample, 1}
+      )
+
+    assert length(sampled.pairs) == 45
+    assert sampled.dropped_blocks == 0
   end
 end
