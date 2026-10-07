@@ -6,7 +6,7 @@ It reports quality only and never fails on a metric. Nothing here ships in the
 package: `eval/lib` compiles in `:dev` only.
 
 ```sh
-mix eval.run                       # all runs + golden scenarios (~4 min)
+mix eval.run                       # all runs + golden scenarios (~25 s)
 mix eval.run --run pharmacy_x_payer
 mix eval.run --golden-only
 mix eval.run --save-baseline       # later runs print deltas against eval/baseline.json
@@ -37,7 +37,9 @@ Each run reports:
 - **False matches by relationship:** twins, Jr/Sr, spouses, parent/child, siblings, borrowed or guarantor SSN, placeholder values, Jan-1 birthdays, or unrelated lookalikes.
 - **Recall by data-quality tag:** each record carries the corruptions applied to it.
 - **Slices:** recall and false-match rate by ethnicity, origin, foreign-born status and age band.
-- **Threshold sweep, field weights, and examples.** For dedupe runs, also clusters: overlays, chaining and B³. For link runs, also one-to-one `assign/1` quality.
+- **Guards:** for each guard, how many scored pairs it fired on, split into
+  different people and the same person.
+- **Threshold sweep, field weights, and examples.** For dedupe runs, also clusters: overlays, chaining, rejected joins and B³. For link runs, also one-to-one `assign/1` quality.
 
 The golden scenarios in `eval/scenarios/*.json` are about 80 hand-written cases,
 one file per category. Each case states why it exists, its risk, and the
@@ -100,9 +102,11 @@ Files in `eval/data/population` (committed, regenerated deterministically):
 | `people.jsonl` | per person: identity history and relationships (spouse, mother, father, twin, junior_of, ssn_lender) |
 | `manifest.json` | seed, counts, tag frequencies |
 
-The default is 4,000 people (about 9,000 records), a size that keeps
-`mix eval.run` to a few minutes. Larger populations work (`--people 50000`),
-but `dedupe/3` scoring time grows roughly quadratically with file size today.
+The default is 4,000 people (about 9,000 records), which keeps `mix eval.run`
+under half a minute. Larger populations work: `mix eval.gen --people 50000`
+(about 111,000 records) runs the enterprise dedupe in under a minute. Pass
+`--population DIR` to `mix eval.run` to evaluate one, for example a second
+population generated with a different `--seed` as a holdout.
 
 ## Data provenance
 
@@ -127,6 +131,10 @@ but `dedupe/3` scoring time grows roughly quadratically with file size today.
 
 The Census API now requires a key, so ZIP-level composition was not pulled
 from ACS.
+
+The library's nickname table (`PatientMatching.Nicknames`) was built from
+`curated/nicknames.csv`, the same list the generator draws nicknames from, so
+nickname results here are optimistic.
 
 ## Extending
 

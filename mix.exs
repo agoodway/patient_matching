@@ -20,6 +20,7 @@ defmodule PatientMatching.MixProject do
           ".doctor.exs",
           ".sobelow-conf",
           "README.md",
+          "CHANGELOG.md",
           "LICENSE"
         ]
       ],

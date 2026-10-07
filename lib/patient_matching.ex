@@ -6,24 +6,36 @@ defmodule PatientMatching do
   base-two evidence weights. Records require `:id`, unique within each file;
   ids may be any Elixir term. Optional patient fields are `:source`, `:mrn`,
   `:ssn`, `:given_name`, `:family_name`, `:dob`, `:sex`, `:zip`, `:phone`,
-  and `:street`. Normalization creates a copy under `:normalized`.
+  and `:street`. Normalization creates a copy under `:normalized`: accents
+  folded, common date/phone/ZIP/SSN formats parsed, and placeholder values
+  (`JOHN DOE`, `BABY GIRL`, `999-99-9999`, see `PatientMatching.Placeholders`)
+  set to nil.
 
   Start with `PatientMatching.Presets.patient_mpi/0`. A model freezes the
   config, estimated prior, per-level m/u, term frequencies and training status.
-  The prior is a rough estimate from deterministic agreements corrected for
-  recall over prediction candidates. Single-file training uses unordered
-  within-file pairs even when the config defaults to `:link_only`.
+  The prior is the probability that two random records are the same patient:
+  deterministic agreements over all n(n-1)/2 pairs, corrected for recall.
+  Single-file training uses unordered within-file pairs even when the config
+  defaults to `:link_only`.
 
-  Unblocked random pairs estimate u; EM on separately blocked patterns
-  estimates m while u and the prior stay fixed. Null comparisons contribute
-  zero weight and are excluded from estimation. Probabilities are computed
-  in log space. Inspect `model.trained.unstable`: exact levels with m <= u
-  cause the whole field to revert to its initial m, without failing training.
+  Unblocked random pairs estimate u. EM runs once per training blocking rule,
+  estimating m for the comparisons that rule does not block on together with
+  the prior inside its blocks, while u and the prediction prior stay fixed.
+  Null comparisons contribute zero weight and are excluded from estimation.
+  Probabilities are computed in log space. Inspect `model.trained.unstable`:
+  exact levels with m <= u cause the whole field to revert to its initial m,
+  without failing training.
+
+  Guards (`PatientMatching.Guards`) keep pairs with a hard conflict, such as
+  birth years decades apart or different SSNs, from auto-matching however
+  well their other fields agree.
 
   ## Custom comparisons
 
   Construct `%PatientMatching.Comparison{field: atom, levels: levels}` using
-  `%PatientMatching.Level{}` structs. The first level must be the only null
+  `%PatientMatching.Level{}` structs. To compare several normalized fields
+  together, add `fields: [atom]`; matchers then receive tuples, and the null
+  level applies when all of them are nil. `field` names the comparison. The first level must be the only null
   level; the last is `:else`. Between them, arity-two predicates run in order
   on normalized values, with the first true level winning. Null and else
   semantics are enforced by the runner regardless of their predicates.
@@ -46,8 +58,8 @@ defmodule PatientMatching do
       0.95
 
   Blocking is an OR of key-lists, each key-list an AND. Key atoms read
-  normalized fields; derived keys are `:family_soundex`, `:given_name3`,
-  `:dob_year`, and `:ssn_last4`. Key functions receive the whole normalized
+  normalized fields; derived keys are `:family_soundex`, `:given_soundex`,
+  `:given_name3`, `:dob_year`, and `:ssn_last4`. Key functions receive the whole normalized
   record and return a block value or nil to skip the rule. Blocks over
   `max_block_size` (500 by default) are skipped and counted. MRN agreements
   bypass prediction blocking.
@@ -73,7 +85,7 @@ defmodule PatientMatching do
 
   @doc """
   Trains from one unlabeled file. Options: `:lambda` (fixed prior, clamped to
-  1e-6..0.5) and `:m_init` (field => level => initial mass).
+  1e-9..0.5) and `:m_init` (field => level => initial mass).
 
   Initial agreement masses follow the brief: strong 0.9, moderate 0.7,
   year-month 0.5, else the remainder. When their sum exceeds one, masses
@@ -84,13 +96,14 @@ defmodule PatientMatching do
 
   TF is count(value) / total training records; nil values receive no count.
   Training raises `ArgumentError` for duplicate ids, fewer than two records,
-  missing comparisons, or zero prediction/training candidates.
+  missing comparisons, or zero training candidates.
   """
   def train(records, config, opts \\ []), do: Trainer.train(records, config, opts)
 
   @doc """
   Links two files and returns `matches`, `review`, `non_match_count`, and
-  `dropped_blocks`. Each returned pair has ids, probability, weight and reason.
+  `dropped_blocks`. Each returned pair has ids, probability, weight, reason
+  and the guards that fired (see `PatientMatching.Guards`).
   Only candidates are counted as non-matches; unblocked pairs are unscored.
 
   Options override `:match_threshold` / `:review_threshold`. Match is >= the
@@ -102,7 +115,9 @@ defmodule PatientMatching do
 
   @doc """
   Scores one file, forcing dedupe pairing, and returns the linking result plus
-  `clusters`. Only match edges enter union-find; singletons are omitted.
+  `clusters` and `rejected_edges`. Only match edges enter union-find,
+  strongest first; with guards configured, an edge that would put two records
+  a guard separates into one cluster is rejected. Singletons are omitted.
   Each cluster contains a stable smallest `root_id` and sorted `member_ids`.
   """
   def dedupe(records, model, opts \\ []) do
@@ -129,9 +144,10 @@ defmodule PatientMatching do
   Scores raw maps with per-field winning levels, m/u and log2(m/u) weights,
   plus separate TF adjustments. Nulls have m/u nil and weight zero.
 
-  Total weight adds the prior log-odds and TF terms. Same non-nil source/MRN
-  yields probability 1, weight 50, reason `:mrn`; explanation levels remain
-  populated to show the statistical evidence despite that override.
+  Total weight adds the prior log-odds, TF terms and guard penalties. Same
+  non-nil source/MRN yields probability 1, weight 50, reason `:mrn`, unless a
+  guard fires (reason `:mrn_conflict`); explanation levels remain populated to
+  show the statistical evidence despite that override.
   """
   def explain(left, right, model), do: Explain.explain(left, right, model)
 
