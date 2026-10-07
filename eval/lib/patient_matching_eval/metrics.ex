@@ -64,6 +64,7 @@ defmodule PatientMatchingEval.Metrics do
       false_match_tags: false_match_tags(false_matches, dataset),
       slices: slices(truth, matches, found, false_matches, raw.records, dataset),
       sweep: sweep(scored, truth),
+      guards: guard_counts(raw.scored, truth, kind),
       clusters: clusters(raw, dataset),
       assignment: assignment(raw, truth),
       model: model_summary(model),
@@ -290,11 +291,25 @@ defmodule PatientMatchingEval.Metrics do
       people_merged_into_overlays:
         overlays |> Enum.map(fn {_, p} -> length(Enum.uniq(p)) end) |> Enum.sum(),
       bcubed_precision: p_sum / n,
-      bcubed_recall: r_sum / n
+      bcubed_recall: r_sum / n,
+      rejected_edges: length(Map.get(result, :rejected_edges, []))
     }
   end
 
   defp clusters(_, _), do: nil
+
+  # Pairs a guard capped or penalized, split by whether they were truly the same person.
+  defp guard_counts(scored, truth, kind) do
+    scored
+    |> Enum.flat_map(fn p ->
+      same? = MapSet.member?(truth, Dataset.key(kind, {p.left_id, p.right_id}))
+      for g <- Map.get(p, :guards, []), do: {g, if(same?, do: :true_pairs, else: :false_pairs)}
+    end)
+    |> Enum.frequencies()
+    |> Enum.reduce(%{}, fn {{g, side}, n}, acc ->
+      Map.update(acc, g, %{side => n}, &Map.put(&1, side, n))
+    end)
+  end
 
   defp assignment(%{kind: :link, result: result}, truth) do
     assigned = PatientMatching.assign(result.matches)

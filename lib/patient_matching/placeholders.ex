@@ -28,7 +28,7 @@ defmodule PatientMatching.Placeholders do
   Newborn labels such as `BABY GIRL A` or `INFANT BOY` are always placeholders.
   """
 
-  @newborn ~r/^(BABY|INFANT|NEWBORN|NB)(GIRL|BOY|G|B)?(TWIN)?[A-D1-4]?$/
+  @newborn ~r/^(?:BABY|INFANT|NEWBORN|NB)(?:GIRL|BOY|G|B)?(?:TWIN)?([A-D1-4])?$/
 
   @doc "The default placeholder lists."
   def default do
@@ -77,6 +77,19 @@ defmodule PatientMatching.Placeholders do
 
   def placeholder?(:zip, value, lists), do: repeated?(value) or listed?(lists, :zip, value)
   def placeholder?(field, value, lists), do: listed?(lists, field, value)
+
+  @doc "Birth order from a newborn label (`BABY GIRL B` is 2, `NEWBORN TWIN 1` is 1), else nil."
+  def birth_order(value) when is_binary(value) do
+    case Regex.run(@newborn, value) do
+      [_, marker] ->
+        Map.get(%{"A" => 1, "B" => 2, "C" => 3, "D" => 4}, marker) || String.to_integer(marker)
+
+      _ ->
+        nil
+    end
+  end
+
+  def birth_order(_), do: nil
 
   @doc "True when a given/family pair is an alias such as JOHN DOE or TRAUMA ALPHA."
   def alias?(given, family, lists) do

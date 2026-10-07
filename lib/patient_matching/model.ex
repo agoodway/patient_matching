@@ -1,6 +1,6 @@
 defmodule PatientMatching.Model do
   @moduledoc false
-  alias PatientMatching.{Config, Normalize}
+  alias PatientMatching.{Comparison, Config, Normalize}
 
   defstruct [
     :lambda,
@@ -149,6 +149,7 @@ defmodule PatientMatching.Model do
     Enum.map(comparisons, fn c ->
       %{
         "field" => Atom.to_string(c.field),
+        "fields" => Enum.map(Comparison.fields(c), &Atom.to_string/1),
         "levels" =>
           Enum.map(c.levels, fn l ->
             %{"name" => Atom.to_string(l.name), "tf" => l.tf?, "null" => l.null_level?}

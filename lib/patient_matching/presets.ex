@@ -8,22 +8,58 @@ defmodule PatientMatching.Presets do
   name (estimating DOB and the rest); prediction uses alternative rules and
   defaults to linking two files.
   """
-  alias PatientMatching.{Comparators, Comparison, Config, Level}
+  alias PatientMatching.{Comparators, Comparison, Config, Guards, Level}
 
-  @doc "Returns the patient MPI preset; thresholds default to match 0.95 / review 0.20."
+  @doc """
+  Returns the patient MPI preset; thresholds default to match 0.95 / review 0.20.
+
+  Comparisons: family and given name (with nickname, compound-surname,
+  prefix and initial levels), swapped given/family order, DOB (with
+  month/day swaps and one-digit typos), sex, a joint contact comparison over
+  ZIP, phone and street (household members share all three, so they are
+  scored together rather than as independent evidence), and SSN (full or
+  last four). Guards from `PatientMatching.Guards.default/0` stop family
+  members with contradicting identifiers from auto-matching.
+  """
   def patient_mpi(overrides \\ []) do
     comparisons = [
-      name(:family_name),
-      name(:given_name),
+      comparison(:family_name, [
+        exact(true),
+        level(:jw_0_92, &(Comparators.jaro_winkler(&1, &2) >= 0.92)),
+        level(:compound, &Comparators.compound?/2),
+        level(:jw_0_85, &(Comparators.jaro_winkler(&1, &2) >= 0.85))
+      ]),
+      comparison(:given_name, [
+        exact(true),
+        level(:nickname, &Comparators.nickname?/2),
+        level(:jw_0_92, &(Comparators.jaro_winkler(&1, &2) >= 0.92)),
+        level(:part, &Comparators.name_part?/2),
+        level(:initial, &Comparators.initial?/2),
+        level(:jw_0_85, &(Comparators.jaro_winkler(&1, &2) >= 0.85))
+      ]),
+      comparison(:name_order, [:given_name, :family_name], [
+        level(:swapped, &Comparators.swapped_names?/2)
+      ]),
       comparison(:dob, [
         exact(true),
+        level(:month_day_swapped, &Comparators.month_day_swapped?/2),
         level(:within_1_day, &Comparators.within_days?(&1, &2, 1)),
+        level(:one_digit, &Comparators.dob_one_edit?/2),
         level(:same_year_month, &Comparators.same_year_month?/2)
       ]),
       comparison(:sex, [exact()]),
-      comparison(:zip, [exact(), level(:zip3, &Comparators.zip3_match?/2)]),
-      comparison(:phone, [exact(), level(:last7, &Comparators.phone_last7?/2)]),
-      comparison(:ssn, [exact(), level(:last4, &Comparators.ssn_last4?/2)])
+      comparison(:contact, [:zip, :phone, :street], [
+        level(:phone_and_zip, &Comparators.phone_and_zip?/2),
+        level(:phone, &Comparators.same_phone?/2),
+        level(:street_and_zip, &Comparators.street_and_zip?/2),
+        level(:zip, &Comparators.same_zip?/2),
+        level(:near, &Comparators.contact_near?/2)
+      ]),
+      comparison(:ssn, [:ssn, :ssn_partial], [
+        level(:exact, &Comparators.ssn_exact?/2),
+        level(:one_digit, &Comparators.ssn_one_edit?/2),
+        level(:last4, &Comparators.ssn_tuple_last4?/2)
+      ])
     ]
 
     defaults = [
@@ -34,23 +70,17 @@ defmodule PatientMatching.Presets do
         [:phone],
         [:ssn_last4, :dob_year]
       ],
-      training_blocking: [[:dob_year], [:family_soundex, :given_name3]]
+      training_blocking: [[:dob_year], [:family_soundex, :given_name3]],
+      guards: Guards.default()
     ]
 
     Config.new(Keyword.merge(defaults, overrides))
   end
 
-  defp name(field),
-    do:
-      comparison(field, [
-        exact(true),
-        level(:jw_0_92, &(Comparators.jaro_winkler(&1, &2) >= 0.92)),
-        level(:jw_0_85, &(Comparators.jaro_winkler(&1, &2) >= 0.85))
-      ])
-
-  defp comparison(field, agreements),
+  defp comparison(field, fields \\ nil, agreements),
     do: %Comparison{
       field: field,
+      fields: fields,
       levels: [%Level{name: :null, null_level?: true} | agreements] ++ [%Level{name: :else}]
     }
 

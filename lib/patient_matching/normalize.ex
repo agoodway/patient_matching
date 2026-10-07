@@ -42,7 +42,7 @@ defmodule PatientMatching.Normalize do
 
   def record(record, placeholders) when is_map(record) do
     lists = if is_map(placeholders), do: placeholders, else: Placeholders.default()
-    {given, given_suffix} = name(Map.get(record, :given_name))
+    {given, given_suffix} = name(Map.get(record, :given_name), :given)
     {family, family_suffix} = name(Map.get(record, :family_name))
     {ssn, ssn_partial} = ssn(Map.get(record, :ssn))
 
@@ -57,6 +57,7 @@ defmodule PatientMatching.Normalize do
         given_name: if(alias?, do: nil, else: given),
         family_name: if(alias?, do: nil, else: family),
         suffix: family_suffix || given_suffix,
+        birth_order: record |> Map.get(:given_name) |> letters() |> Placeholders.birth_order(),
         dob: date(Map.get(record, :dob)),
         sex: value(:sex, Map.get(record, :sex)),
         zip: value(:zip, Map.get(record, :zip)),
@@ -82,8 +83,8 @@ defmodule PatientMatching.Normalize do
   def value(:mrn, value), do: mrn(value)
   def value(:ssn, value), do: value |> ssn() |> elem(0)
 
-  def value(field, value) when field in [:given_name, :family_name],
-    do: value |> name() |> elem(0)
+  def value(:given_name, value), do: value |> name(:given) |> elem(0)
+  def value(:family_name, value), do: value |> name() |> elem(0)
 
   def value(:phone, value) do
     with text when is_binary(text) <- text(value),
@@ -148,15 +149,18 @@ defmodule PatientMatching.Normalize do
   @doc """
   Splits a name into its letters (spaces, hyphens and particles removed, so
   `DE LA CRUZ` equals `DELACRUZ` and `SMITH-JONES` equals `SMITHJONES`) and a
-  generational suffix taken from the last token.
+  generational suffix taken from the last token. For given names, single
+  letters after the first token are middle initials and are dropped
+  (`JEREMY S` equals `JEREMY`).
   """
-  def name(value) do
+  def name(value, kind \\ :family) do
     case string(value) do
       nil ->
         {nil, nil}
 
       text ->
         {tokens, suffix} = text |> String.split(" ") |> split_suffix()
+        tokens = if kind == :given, do: drop_initials(tokens), else: tokens
 
         case tokens |> Enum.join() |> String.replace(~r/\P{L}/u, "") do
           "" -> {nil, suffix}
@@ -173,6 +177,9 @@ defmodule PatientMatching.Normalize do
   end
 
   defp split_suffix(tokens), do: {tokens, nil}
+
+  defp drop_initials([first | rest]), do: [first | Enum.reject(rest, &(String.length(&1) == 1))]
+  defp drop_initials([]), do: []
 
   defp ssn(value) do
     case digits(value) do
@@ -207,7 +214,7 @@ defmodule PatientMatching.Normalize do
   """
   def date(%{year: y, month: m, day: d}) when is_integer(y) and is_integer(m) and is_integer(d) do
     with {:ok, date} <- Date.new(y, m, d),
-         true <- y >= @min_year and Date.compare(date, Date.utc_today()) != :gt do
+         true <- y >= @min_year and Date.compare(date, today()) != :gt do
       %{year: y, month: m, day: d}
     else
       _ -> nil
@@ -249,6 +256,16 @@ defmodule PatientMatching.Normalize do
       text -> String.replace(text, ~r/[^0-9]/, "")
     end
   end
+
+  defp letters(value) do
+    case string(value) do
+      nil -> nil
+      text -> String.replace(text, " ", "")
+    end
+  end
+
+  @doc "Today's date; dates after it are invalid."
+  def today, do: Date.utc_today()
 
   defp text(value) when is_binary(value), do: value
   defp text(value) when is_integer(value), do: Integer.to_string(value)

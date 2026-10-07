@@ -1,6 +1,6 @@
 defmodule PatientMatching.Config do
   @moduledoc false
-  alias PatientMatching.{Comparison, Placeholders}
+  alias PatientMatching.{Comparison, Guards, Placeholders}
 
   defstruct comparisons: [],
             blocking: [],
@@ -14,7 +14,8 @@ defmodule PatientMatching.Config do
             em_tol: 1.0e-4,
             seed: 1,
             max_block_size: 500,
-            placeholders: :default
+            placeholders: :default,
+            guards: []
 
   @doc "Builds a config from keywords, applying defaults and validating all options."
   def new(opts \\ []) do
@@ -35,6 +36,8 @@ defmodule PatientMatching.Config do
     validate_estimation!(config)
     Enum.each([config.blocking, config.training_blocking], &validate_blocking!/1)
     Placeholders.validate!(config.placeholders)
+    Guards.validate!(config.guards)
+
     config
   end
 

@@ -26,6 +26,7 @@ defmodule PatientMatchingEval.Report do
       "        review #{int(m.review)} (#{int(m.review_true)} true) · recall incl. review #{pct(m.recall_with_review)}",
       "missed  unblocked #{int(m.missed_by_stage.unblocked)} · scored non-match #{int(m.missed_by_stage.scored_non_match)} · in review #{int(m.missed_by_stage.review)}",
       "false   #{int(m.false_matches)} auto-matched pairs of different people: #{counts(m.false_match_causes)}",
+      guard_line(m.guards),
       cluster_line(m.clusters),
       assignment_line(m.assignment),
       "",
@@ -49,11 +50,20 @@ defmodule PatientMatchingEval.Report do
     ]
   end
 
+  defp guard_line(guards) when map_size(guards) == 0, do: "guards  none fired"
+
+  defp guard_line(guards),
+    do:
+      "guards  " <>
+        Enum.map_join(Enum.sort(guards), " · ", fn {g, c} ->
+          "#{g} #{Map.get(c, :false_pairs, 0)} different / #{Map.get(c, :true_pairs, 0)} same"
+        end)
+
   defp cluster_line(nil), do: []
 
   defp cluster_line(c),
     do:
-      "cluster #{int(c.clusters)} clusters · largest #{c.largest} · overlay clusters #{c.overlay_clusters} (#{c.people_merged_into_overlays} people merged) · B³ precision #{pct(c.bcubed_precision)} recall #{pct(c.bcubed_recall)}"
+      "cluster #{int(c.clusters)} clusters · largest #{c.largest} · overlay clusters #{c.overlay_clusters} (#{c.people_merged_into_overlays} people merged) · rejected joins #{c.rejected_edges} · B³ precision #{pct(c.bcubed_precision)} recall #{pct(c.bcubed_recall)}"
 
   defp assignment_line(nil), do: []
 

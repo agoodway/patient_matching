@@ -1,20 +1,28 @@
 defmodule PatientMatching.Scorer do
   @moduledoc false
-  alias PatientMatching.Comparison
+  alias PatientMatching.{Comparison, Guards}
   @floor 1.0e-6
 
-  @doc "Scores normalized records in log space, bypassing statistical evidence for MRN matches unless explaining."
+  @doc """
+  Scores normalized records in log space. A same-source MRN agreement scores
+  probability 1 (reason `:mrn`) unless a guard fires. When guards fire, the
+  weight loses the guards' penalties and the probability is capped just below
+  the match threshold (`:match_threshold` option, else the config's); an MRN
+  pair is then scored statistically with reason `:mrn_conflict`.
+  """
   def score(left, right, model, opts \\ []) do
     mrn = mrn?(left, right)
+    fired = Guards.fired(model.config.guards, left.normalized, right.normalized)
 
-    if mrn and not Keyword.get(opts, :explain, false) do
-      %{probability: 1.0, weight: 50.0, levels: [], tf_adjustments: [], reason: :mrn}
+    if mrn and fired == [] and not Keyword.get(opts, :explain, false) do
+      %{probability: 1.0, weight: 50.0, levels: [], tf_adjustments: [], reason: :mrn, guards: []}
     else
-      statistical_score(left, right, model, mrn)
+      threshold = Keyword.get(opts, :match_threshold, model.config.match_threshold)
+      statistical_score(left, right, model, mrn, fired, threshold)
     end
   end
 
-  defp statistical_score(left, right, model, mrn) do
+  defp statistical_score(left, right, model, mrn, fired, threshold) do
     {levels, adjustments} =
       Enum.map_reduce(model.comparisons, [], fn comparison, adjustments ->
         level = Comparison.run(comparison, left, right)
@@ -26,12 +34,27 @@ defmodule PatientMatching.Scorer do
       log2(model.lambda / (1 - model.lambda)) + Enum.sum(Enum.map(levels, & &1.weight)) +
         Enum.sum(Enum.map(adjustments, & &1.adjustment))
 
+    {probability, weight, reason} =
+      cond do
+        fired != [] ->
+          weight = weight - Enum.sum(Enum.map(fired, &elem(&1, 1)))
+          cap = threshold * (1 - 1.0e-9)
+          {min(probability(weight), cap), weight, if(mrn, do: :mrn_conflict, else: :scored)}
+
+        mrn ->
+          {1.0, 50.0, :mrn}
+
+        true ->
+          {probability(weight), weight, :scored}
+      end
+
     %{
-      probability: if(mrn, do: 1.0, else: probability(weight)),
-      weight: if(mrn, do: 50.0, else: weight),
+      probability: probability,
+      weight: weight,
       levels: levels,
       tf_adjustments: Enum.reverse(adjustments),
-      reason: if(mrn, do: :mrn, else: :scored)
+      reason: reason,
+      guards: Enum.map(fired, &elem(&1, 0))
     }
   end
 

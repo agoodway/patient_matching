@@ -84,7 +84,9 @@ defmodule PatientMatching.Trainer do
     used = Blocking.rule_fields(rule)
 
     fields =
-      for c <- config.comparisons, not Enum.any?(List.wrap(c.field), &(&1 in used)), do: c.field
+      for c <- config.comparisons,
+          not Enum.any?(Comparison.fields(c), &(&1 in used)),
+          do: c.field
 
     %{pairs: blocked.pairs, fields: fields}
   end
@@ -412,16 +414,33 @@ defmodule PatientMatching.Trainer do
            do: raise(ArgumentError, "m_init must map non-null level names to nonnegative masses")
   end
 
+  # Variant levels that the preset adds; true matches rarely land on them.
+  @variant_levels [
+    :nickname,
+    :compound,
+    :prefix,
+    :part,
+    :initial,
+    :swapped,
+    :month_day_swapped,
+    :one_digit,
+    :phone,
+    :street_and_zip,
+    :zip,
+    :near
+  ]
+
   defp initial_mass(level) do
     cond do
-      Comparison.exact_style?(level) or level.name in [:exact, :jw_0_92, :dob_exact] ->
+      Comparison.exact_style?(level) or
+          level.name in [:exact, :jw_0_92, :dob_exact, :phone_and_zip] ->
         0.90
 
       level.name in [:jw_0_85, :within_1_day, :zip3, :last7, :last4, :phone_last7, :ssn_last4] ->
         0.70
 
-      level.name == :same_year_month ->
-        0.50
+      level.name in @variant_levels ->
+        0.05
 
       true ->
         0.50

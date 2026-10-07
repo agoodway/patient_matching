@@ -59,12 +59,18 @@ defmodule PatientMatching.EdgeCasesTest do
     end
   end
 
-  test "date differences by year only choose else, dates within a month choose year-month" do
+  test "DOB levels: distant dates are else, typos and swaps have their own levels, same month is year-month" do
     dob = Enum.find(Presets.patient_mpi().comparisons, &(&1.field == :dob))
     left = Normalize.record(%{id: 1, dob: "2000-02-10"})
-    assert Comparison.run(dob, left, Normalize.record(%{id: 2, dob: "2001-02-10"})).name == :else
+    assert Comparison.run(dob, left, Normalize.record(%{id: 2, dob: "2002-03-11"})).name == :else
 
-    assert Comparison.run(dob, left, Normalize.record(%{id: 3, dob: "2000-02-12"})).name ==
+    assert Comparison.run(dob, left, Normalize.record(%{id: 2, dob: "2001-02-10"})).name ==
+             :one_digit
+
+    assert Comparison.run(dob, left, Normalize.record(%{id: 2, dob: "2000-10-02"})).name ==
+             :month_day_swapped
+
+    assert Comparison.run(dob, left, Normalize.record(%{id: 3, dob: "2000-02-27"})).name ==
              :same_year_month
   end
 

@@ -48,6 +48,9 @@ defmodule PatientMatching.NormalizeFormatsTest do
     assert norm(%{given_name: "John III", family_name: "Smith"}).suffix == "III"
     assert norm(%{family_name: "Smith 2nd"}).suffix == "II"
     assert norm(%{family_name: "Jr"}).family_name == "JR"
+    assert norm(%{given_name: "Jeremy S."}).given_name == "JEREMY"
+    assert norm(%{given_name: "Mary Ann"}).given_name == "MARYANN"
+    assert norm(%{given_name: "J"}).given_name == "J"
   end
 
   test "sex codes: unknowns and numeric codes are missing, other values are kept" do

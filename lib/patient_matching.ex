@@ -56,7 +56,17 @@ defmodule PatientMatching do
   services, or supervised classifier. Logs contain block hashes/counts,
   never raw field values.
   """
-  alias PatientMatching.{Assign, Blocking, Cluster, Config, Explain, Linker, Model, Trainer}
+  alias PatientMatching.{
+    Assign,
+    Blocking,
+    Cluster,
+    Config,
+    Explain,
+    Guards,
+    Linker,
+    Model,
+    Trainer
+  }
 
   @doc "Builds and validates a config from keywords. The preset supplies patient comparisons and rules."
   def config(opts \\ []), do: Config.new(opts)
@@ -96,15 +106,23 @@ defmodule PatientMatching do
   Each cluster contains a stable smallest `root_id` and sorted `member_ids`.
   """
   def dedupe(records, model, opts \\ []) do
-    result =
-      Linker.score(
-        Blocking.prepare(records, model.config.placeholders),
-        :dedupe_only,
-        model,
-        opts
-      )
+    records = Blocking.prepare(records, model.config.placeholders)
+    result = Linker.score(records, :dedupe_only, model, opts)
 
-    Map.put(result, :clusters, Cluster.clusters(result.matches))
+    case model.config.guards do
+      [] ->
+        result
+        |> Map.put(:clusters, Cluster.clusters(result.matches))
+        |> Map.put(:rejected_edges, [])
+
+      guards ->
+        index = Map.new(records, &{&1.id, &1.normalized})
+
+        {clusters, rejected} =
+          Cluster.guarded(result.matches, &(Guards.check(guards, index[&1], index[&2]) != []))
+
+        result |> Map.put(:clusters, clusters) |> Map.put(:rejected_edges, rejected)
+    end
   end
 
   @doc """

@@ -99,6 +99,123 @@ defmodule PatientMatching.Comparators do
 
   def ssn_last4?(_, _), do: false
 
+  @doc "One given name is a known nickname of the other (BOB / ROBERT, PACO / FRANCISCO)."
+  def nickname?(a, b), do: PatientMatching.Nicknames.nickname?(a, b)
+
+  @doc "The shorter name (at least `min` letters) starts the longer one: JOSE / JOSELUIS."
+  def prefix?(a, b, min \\ 3)
+
+  def prefix?(a, b, min) when is_binary(a) and is_binary(b) do
+    {short, long} = if byte_size(a) <= byte_size(b), do: {a, b}, else: {b, a}
+    short != long and byte_size(short) >= min and String.starts_with?(long, short)
+  end
+
+  def prefix?(_, _, _), do: false
+
+  @doc """
+  The shorter family name (at least four letters) begins or ends the longer:
+  compound, hyphenated and particle surnames (GARCIA / GARCIALOPEZ, CRUZ /
+  DELACRUZ, JONES / SMITHJONES).
+  """
+  def compound?(a, b) when is_binary(a) and is_binary(b) do
+    {short, long} = if byte_size(a) <= byte_size(b), do: {a, b}, else: {b, a}
+
+    short != long and byte_size(short) >= 4 and
+      (String.starts_with?(long, short) or String.ends_with?(long, short))
+  end
+
+  def compound?(_, _), do: false
+
+  @doc """
+  The shorter given name (at least three letters) begins or ends the longer:
+  middle names entered in the given field (JOSE / JOSELUIS, LAN / THILAN).
+  """
+  def name_part?(a, b) when is_binary(a) and is_binary(b) do
+    {short, long} = if byte_size(a) <= byte_size(b), do: {a, b}, else: {b, a}
+
+    short != long and byte_size(short) >= 3 and
+      (String.starts_with?(long, short) or String.ends_with?(long, short))
+  end
+
+  def name_part?(_, _), do: false
+
+  @doc "One name is a single letter that starts the other."
+  def initial?(<<c::utf8>>, <<c::utf8, _::binary>>), do: true
+  def initial?(<<c::utf8, _::binary>>, <<c::utf8>>), do: true
+  def initial?(_, _), do: false
+
+  @doc "Two {given, family} tuples with the names entered in each other's fields."
+  def swapped_names?({g1, f1}, {g2, f2}) when is_binary(g1) and is_binary(f1),
+    do: g1 != f1 and g1 == f2 and f1 == g2
+
+  def swapped_names?(_, _), do: false
+
+  @doc "Same year with month and day exchanged (DD/MM entered as MM/DD)."
+  def month_day_swapped?(%{year: y, month: m1, day: d1}, %{year: y, month: m2, day: d2}),
+    do: m1 != d1 and m1 == d2 and d1 == m2
+
+  def month_day_swapped?(_, _), do: false
+
+  @doc "Dates whose YYYYMMDD digits differ by one substitution or one adjacent transposition."
+  def dob_one_edit?(%{} = a, %{} = b) when a != b, do: one_edit?(ymd(a), ymd(b))
+  def dob_one_edit?(_, _), do: false
+
+  @doc "Dates whose YYYYMMDD digits differ by exactly one adjacent transposition."
+  def dob_transposed?(%{} = a, %{} = b) when a != b, do: transposed?(ymd(a), ymd(b))
+  def dob_transposed?(_, _), do: false
+
+  defp transposed?(a, b) do
+    case differences(a, b) do
+      [i, j] when j == i + 1 ->
+        :binary.at(a, i) == :binary.at(b, j) and :binary.at(a, j) == :binary.at(b, i)
+
+      _ ->
+        false
+    end
+  end
+
+  defp differences(a, b) do
+    for {x, y, i} <- Enum.zip([:binary.bin_to_list(a), :binary.bin_to_list(b), 0..byte_size(a)]),
+        x != y,
+        do: i
+  end
+
+  @doc "Equal-length strings differing by one substitution or one adjacent transposition."
+  def one_edit?(a, b) when is_binary(a) and is_binary(b) and byte_size(a) == byte_size(b),
+    do: length(differences(a, b)) == 1 or transposed?(a, b)
+
+  def one_edit?(_, _), do: false
+
+  @doc "SSN tuples `{ssn, last4_only}`: full SSNs are equal."
+  def ssn_exact?({a, _}, {b, _}), do: exact?(a, b)
+
+  @doc "SSN tuples: full SSNs differ by one digit or one adjacent transposition."
+  def ssn_one_edit?({a, _}, {b, _}), do: one_edit?(a, b)
+
+  @doc "SSN tuples: last four digits agree, from a full SSN or a last-four-only value."
+  def ssn_tuple_last4?(a, b), do: exact?(last4(a), last4(b))
+
+  defp last4({ssn, _}) when is_binary(ssn), do: String.slice(ssn, -4, 4)
+  defp last4({nil, partial}), do: partial
+
+  @doc "Contact tuples `{zip, phone, street}`: phone and ZIP both agree."
+  def phone_and_zip?({z1, p1, _}, {z2, p2, _}), do: exact?(p1, p2) and exact?(z1, z2)
+  @doc "Contact tuples: phone agrees."
+  def same_phone?({_, p1, _}, {_, p2, _}), do: exact?(p1, p2)
+  @doc "Contact tuples: street and ZIP both agree."
+  def street_and_zip?({z1, _, s1}, {z2, _, s2}), do: exact?(s1, s2) and exact?(z1, z2)
+  @doc "Contact tuples: ZIP agrees."
+  def same_zip?({z1, _, _}, {z2, _, _}), do: exact?(z1, z2)
+
+  @doc "Contact tuples: same ZIP3 or same last seven phone digits."
+  def contact_near?({z1, p1, _}, {z2, p2, _}), do: zip3_match?(z1, z2) or phone_last7?(p1, p2)
+
+  defp ymd(%{year: y, month: m, day: d}),
+    do:
+      Integer.to_string(y) <>
+        String.pad_leading(Integer.to_string(m), 2, "0") <>
+        String.pad_leading(Integer.to_string(d), 2, "0")
+
   defp match_character({char, i}, {matches, used}, right, window) do
     j =
       right

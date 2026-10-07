@@ -50,7 +50,7 @@ defmodule PatientMatching.Linker do
     right = Map.new(right, &{&1.id, &1})
 
     pairs
-    |> score_pairs(left, right, model)
+    |> score_pairs(left, right, model, match_threshold: match_threshold)
     |> Enum.reduce(
       %{matches: [], review: [], non_match_count: 0, dropped_blocks: blocked.dropped_blocks},
       fn pair, result ->
@@ -66,10 +66,10 @@ defmodule PatientMatching.Linker do
 
   # Each chunk carries only the records its pairs reference, so a worker copies
   # O(chunk) data instead of the whole file.
-  defp score_pairs(pairs, left, right, model) when length(pairs) < @parallel_min,
-    do: Enum.map(pairs, &score_pair(&1, left, right, model))
+  defp score_pairs(pairs, left, right, model, opts) when length(pairs) < @parallel_min,
+    do: Enum.map(pairs, &score_pair(&1, left, right, model, opts))
 
-  defp score_pairs(pairs, left, right, model) do
+  defp score_pairs(pairs, left, right, model, opts) do
     workers = System.schedulers_online()
     size = max(div(length(pairs), workers * 4), 1)
 
@@ -80,7 +80,7 @@ defmodule PatientMatching.Linker do
        Map.take(right, Enum.map(chunk, &elem(&1, 1)))}
     end)
     |> Task.async_stream(
-      fn {chunk, l, r} -> Enum.map(chunk, &score_pair(&1, l, r, model)) end,
+      fn {chunk, l, r} -> Enum.map(chunk, &score_pair(&1, l, r, model, opts)) end,
       max_concurrency: workers,
       ordered: true,
       timeout: :infinity
@@ -88,15 +88,16 @@ defmodule PatientMatching.Linker do
     |> Enum.flat_map(fn {:ok, scored} -> scored end)
   end
 
-  defp score_pair({a, b}, left, right, model) do
-    scored = Scorer.score(Map.fetch!(left, a), Map.fetch!(right, b), model)
+  defp score_pair({a, b}, left, right, model, opts) do
+    scored = Scorer.score(Map.fetch!(left, a), Map.fetch!(right, b), model, opts)
 
     %{
       left_id: a,
       right_id: b,
       probability: scored.probability,
       weight: scored.weight,
-      reason: scored.reason
+      reason: scored.reason,
+      guards: scored.guards
     }
   end
 

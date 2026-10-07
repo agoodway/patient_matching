@@ -1,12 +1,27 @@
 defmodule PatientMatching.Comparison do
   @moduledoc false
   alias PatientMatching.{Comparators, Level}
-  defstruct [:field, :levels]
+  defstruct [:field, :levels, fields: nil]
+
+  @doc "Normalized fields a comparison reads: its `fields` list, or just its `field`."
+  def fields(%__MODULE__{fields: nil, field: field}), do: [field]
+  def fields(%__MODULE__{fields: fields}), do: fields
+
+  @doc """
+  The value a comparison's matchers receive: the field's normalized value, or
+  a tuple of the `fields` values (nil when all of them are nil).
+  """
+  def value(%__MODULE__{fields: nil, field: field}, record), do: Map.get(record.normalized, field)
+
+  def value(%__MODULE__{fields: fields}, record) do
+    values = Enum.map(fields, &Map.get(record.normalized, &1))
+    if Enum.all?(values, &is_nil/1), do: nil, else: List.to_tuple(values)
+  end
 
   @doc "Selects the first winning level; null and else semantics override their predicates."
-  def run(%__MODULE__{field: field, levels: levels}, left, right) do
-    a = Map.get(left.normalized, field)
-    b = Map.get(right.normalized, field)
+  def run(%__MODULE__{levels: levels} = comparison, left, right) do
+    a = value(comparison, left)
+    b = value(comparison, right)
 
     if a == nil or b == nil do
       hd(levels)
@@ -18,8 +33,9 @@ defmodule PatientMatching.Comparison do
   end
 
   @doc "Rejects malformed levels, invalid null/else ordering, or non-equality TF matchers."
-  def validate!(%__MODULE__{field: field, levels: levels})
+  def validate!(%__MODULE__{field: field, levels: levels, fields: fields})
       when is_atom(field) and not is_nil(field) and is_list(levels) and length(levels) >= 2 do
+    validate_fields!(fields, levels)
     validate_shapes!(levels)
     validate_names!(levels)
     validate_boundaries!(levels)
@@ -29,6 +45,16 @@ defmodule PatientMatching.Comparison do
 
   def validate!(_),
     do: raise(ArgumentError, "comparison requires a field and at least null/else levels")
+
+  defp validate_fields!(nil, _levels), do: :ok
+
+  defp validate_fields!(fields, levels) do
+    unless is_list(fields) and fields != [] and Enum.all?(fields, &is_atom/1),
+      do: raise(ArgumentError, "comparison fields must be nil or a nonempty list of atoms")
+
+    if Enum.any?(levels, &(is_struct(&1, Level) and &1.tf?)),
+      do: raise(ArgumentError, "TF requires a single-field comparison")
+  end
 
   defp validate_shapes!(levels) do
     unless Enum.all?(levels, fn level ->
