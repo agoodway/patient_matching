@@ -68,7 +68,9 @@ defmodule PatientMatching.Presets do
         [:family_soundex, :dob_year],
         [:given_name3, :zip],
         [:phone],
-        [:ssn_last4, :dob_year]
+        [:ssn_last4, :dob_year],
+        [:dob],
+        [:given_soundex, :family_soundex]
       ],
       training_blocking: [[:dob_year], [:family_soundex, :given_name3]],
       guards: Guards.default()
