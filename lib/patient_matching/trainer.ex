@@ -96,24 +96,7 @@ defmodule PatientMatching.Trainer do
         field = comparison.field
         estimates = for r <- results, field in r.estimated, do: r.model.parameters[field]
 
-        params =
-          case estimates do
-            [] ->
-              model.parameters[field]
-
-            _ ->
-              masses =
-                Map.new(model.parameters[field], fn {level, _} ->
-                  {level, Enum.sum(Enum.map(estimates, & &1[level].m)) / length(estimates)}
-                end)
-                |> distribution()
-
-              Map.new(masses, fn {level, m} ->
-                {level, %{model.parameters[field][level] | m: m}}
-              end)
-          end
-
-        {field, params}
+        {field, average_m(model.parameters[field], estimates)}
       end)
 
     %{
@@ -126,6 +109,17 @@ defmodule PatientMatching.Trainer do
             lambda_train: Enum.map(results, & &1.model.trained.lambda_train)
           })
     }
+  end
+
+  defp average_m(params, []), do: params
+
+  defp average_m(params, estimates) do
+    params
+    |> Map.new(fn {level, _} ->
+      {level, Enum.sum(Enum.map(estimates, & &1[level].m)) / length(estimates)}
+    end)
+    |> distribution()
+    |> Map.new(fn {level, m} -> {level, %{params[level] | m: m}} end)
   end
 
   @doc """
