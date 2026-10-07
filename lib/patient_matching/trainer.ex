@@ -77,7 +77,7 @@ defmodule PatientMatching.Trainer do
   defp session(records, rule, config) do
     blocked =
       Blocking.candidates_prepared(records, [rule], :dedupe_only,
-        max_block_size: config.max_block_size,
+        max_block_size: config.training_block_size,
         oversized: {:sample, config.seed}
       )
 
@@ -238,12 +238,30 @@ defmodule PatientMatching.Trainer do
   def pattern_counts(records, pairs, config),
     do: records |> Blocking.prepare(config.placeholders) |> pattern_counts_prepared(pairs, config)
 
+  # Chunks carry only the records their pairs reference (see Linker).
   defp pattern_counts_prepared(records, pairs, config) do
     index = Map.new(records, &{&1.id, &1})
+    workers = System.schedulers_online()
 
+    pairs
+    |> Enum.chunk_every(max(div(length(pairs), workers * 4), 1_000))
+    |> Enum.map(fn chunk ->
+      {chunk, Map.take(index, Enum.flat_map(chunk, fn {a, b} -> [a, b] end))}
+    end)
+    |> Task.async_stream(
+      fn {chunk, index} -> count_patterns(chunk, index, config.comparisons) end,
+      max_concurrency: workers,
+      timeout: :infinity
+    )
+    |> Enum.reduce(%{}, fn {:ok, counts}, acc ->
+      Map.merge(acc, counts, fn _, x, y -> x + y end)
+    end)
+  end
+
+  defp count_patterns(pairs, index, comparisons) do
     Enum.reduce(pairs, %{}, fn {a, b}, counts ->
       pattern =
-        config.comparisons
+        comparisons
         |> Enum.map(&Comparison.run(&1, index[a], index[b]).name)
         |> List.to_tuple()
 

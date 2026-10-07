@@ -14,6 +14,7 @@ defmodule PatientMatching.Config do
             em_tol: 1.0e-4,
             seed: 1,
             max_block_size: 500,
+            training_block_size: 200,
             placeholders: :default,
             guards: []
 
@@ -59,7 +60,8 @@ defmodule PatientMatching.Config do
       [
         u_sample_size: config.u_sample_size,
         em_max_iters: config.em_max_iters,
-        max_block_size: config.max_block_size
+        max_block_size: config.max_block_size,
+        training_block_size: config.training_block_size
       ],
       &positive_integer!/1
     )

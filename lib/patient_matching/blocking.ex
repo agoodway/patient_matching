@@ -5,18 +5,25 @@ defmodule PatientMatching.Blocking do
 
   @doc "Normalizes a file and rejects records with missing or duplicate ids."
   def prepare(records, placeholders \\ :default) when is_list(records) do
-    {_ids, normalized} =
-      Enum.reduce(records, {MapSet.new(), []}, fn record, {ids, normalized} ->
-        unless is_map(record) and Map.has_key?(record, :id),
-          do: raise(ArgumentError, "every record must have :id")
+    Enum.reduce(records, MapSet.new(), fn record, ids ->
+      unless is_map(record) and Map.has_key?(record, :id),
+        do: raise(ArgumentError, "every record must have :id")
 
-        if MapSet.member?(ids, record.id),
-          do: raise(ArgumentError, "duplicate ids in file of #{length(records)} records")
+      if MapSet.member?(ids, record.id),
+        do: raise(ArgumentError, "duplicate ids in file of #{length(records)} records")
 
-        {MapSet.put(ids, record.id), [Normalize.record(record, placeholders) | normalized]}
-      end)
+      MapSet.put(ids, record.id)
+    end)
 
-    Enum.reverse(normalized)
+    workers = System.schedulers_online()
+
+    records
+    |> Enum.chunk_every(max(div(length(records), workers * 4), 500))
+    |> Task.async_stream(fn chunk -> Enum.map(chunk, &Normalize.record(&1, placeholders)) end,
+      max_concurrency: workers,
+      timeout: :infinity
+    )
+    |> Enum.flat_map(fn {:ok, normalized} -> normalized end)
   end
 
   @doc "Returns unique blocked id pairs from a file or a {left, right} file tuple."
