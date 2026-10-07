@@ -1,0 +1,119 @@
+{
+ "category": "MRN & source",
+ "description": "Same-source MRN agreement bypasses scoring and forces probability 1. These cases check that override's real-world consequences.",
+ "cases": [
+  {
+   "id": "mrn-same-person",
+   "title": "Same MRN, same person, new name",
+   "why": "Name change on the same MRN: the override is correct here.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Ashley",
+    "family_name": "Fontenot",
+    "dob": "1992-02-14",
+    "sex": "F",
+    "zip": "77006",
+    "source": "hospital_a",
+    "mrn": "HA00012345"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Ashley",
+    "family_name": "Broussard",
+    "dob": "1992-02-14",
+    "sex": "F",
+    "zip": "77584",
+    "source": "hospital_a",
+    "mrn": "HA00012345"
+   }
+  },
+  {
+   "id": "mrn-overlay",
+   "title": "Same MRN on clearly different people",
+   "why": "A registration error filed a second patient under an existing MRN. Forcing p=1 propagates the overlay.",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Gloria",
+    "family_name": "Hampton",
+    "dob": "1949-03-27",
+    "sex": "F",
+    "zip": "77016",
+    "phone": "7135550183",
+    "ssn": "452662190",
+    "source": "county_hospital",
+    "mrn": "CH00077881"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Kevin",
+    "family_name": "Tran",
+    "dob": "2011-06-15",
+    "sex": "M",
+    "zip": "77083",
+    "phone": "8325550194",
+    "source": "county_hospital",
+    "mrn": "CH00077881"
+   }
+  },
+  {
+   "id": "mrn-leading-zeros",
+   "title": "Same MRN with and without leading zeros",
+   "why": "Interface strips zeros; normalization keeps them, so the override misses. Demographics alone (married name, moved) are too weak.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Ashley",
+    "family_name": "Fontenot",
+    "dob": "1992-02-14",
+    "sex": "F",
+    "zip": "77006",
+    "source": "county_hospital",
+    "mrn": "0001288734"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Ashley",
+    "family_name": "Broussard",
+    "dob": "1992-02-14",
+    "sex": "F",
+    "zip": "77584",
+    "source": "county_hospital",
+    "mrn": "1288734"
+   }
+  },
+  {
+   "id": "mrn-cross-source-coincidence",
+   "title": "Same MRN value in two different sources",
+   "why": "MRN namespaces are per source; coincidental equality means nothing.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Leticia",
+    "family_name": "Rangel",
+    "dob": "1983-03-03",
+    "sex": "F",
+    "zip": "77012",
+    "phone": "7135550138",
+    "source": "hospital_a",
+    "mrn": "100234"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Marcus",
+    "family_name": "Bell",
+    "dob": "1969-12-01",
+    "sex": "M",
+    "zip": "77028",
+    "phone": "7135550149",
+    "source": "fqhc",
+    "mrn": "100234"
+   }
+  }
+ ]
+}

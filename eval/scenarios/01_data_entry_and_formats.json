@@ -1,0 +1,392 @@
+{
+ "category": "data entry & formats",
+ "description": "Same person; differences come only from keystrokes and system formats. All should be found.",
+ "cases": [
+  {
+   "id": "fmt-dob-mdy-nopad",
+   "title": "DOB as M/D/YYYY without zero padding",
+   "why": "Lab and county systems export 5/3/1987; the normalizer only reads ISO and MM/DD/YYYY.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Marisol",
+    "family_name": "Ybarra",
+    "dob": "1987-05-03",
+    "sex": "F",
+    "zip": "77036",
+    "phone": "7135550134",
+    "ssn": "455-21-8890"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "MARISOL",
+    "family_name": "YBARRA",
+    "dob": "5/3/1987",
+    "sex": "F",
+    "zip": "77036",
+    "phone": "713-555-0134",
+    "ssn": "455218890"
+   }
+  },
+  {
+   "id": "fmt-dob-compact",
+   "title": "DOB as YYYYMMDD",
+   "why": "Payer eligibility and HL7 feeds send compact dates.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Terrence",
+    "family_name": "Washington",
+    "dob": "1961-11-30",
+    "sex": "M",
+    "zip": "77021",
+    "phone": "7135557712",
+    "ssn": "631449021"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "TERRENCE",
+    "family_name": "WASHINGTON",
+    "dob": "19611130",
+    "sex": "M",
+    "zip": "77021",
+    "phone": "713-555-7712",
+    "ssn": "631-44-9021"
+   }
+  },
+  {
+   "id": "fmt-dob-dash",
+   "title": "DOB as MM-DD-YYYY",
+   "why": "Common in clinic front-desk exports.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Alejandro",
+    "family_name": "Camacho",
+    "dob": "1984-03-13",
+    "sex": "M",
+    "zip": "77055",
+    "phone": "8325556620"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Alejandro",
+    "family_name": "Camacho",
+    "dob": "03-13-1984",
+    "sex": "Male",
+    "zip": "77055",
+    "phone": "(832) 555-6620"
+   }
+  },
+  {
+   "id": "fmt-dob-dash-no-other-ids",
+   "title": "DOB as MM-DD-YYYY, moved, new phone, no SSN",
+   "why": "Without a parsable DOB nothing else in the blocking rules connects these records.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Alejandro",
+    "family_name": "Camacho",
+    "dob": "1984-03-13",
+    "sex": "M",
+    "zip": "77055",
+    "phone": "8325556620"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Alejandro",
+    "family_name": "Camacho",
+    "dob": "03-13-1984",
+    "sex": "Male",
+    "zip": "77016",
+    "phone": "(713) 555-9532"
+   }
+  },
+  {
+   "id": "fmt-phone-country-code",
+   "title": "Phone with +1 country code",
+   "why": "E.164 phones are 11 digits; exact phone fails, last-7 should still agree.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Kimberly",
+    "family_name": "Tran",
+    "dob": "1990-07-19",
+    "sex": "F",
+    "zip": "77072",
+    "phone": "2815550147"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Kimberly",
+    "family_name": "Tran",
+    "dob": "07/19/1990",
+    "sex": "F",
+    "zip": "77072",
+    "phone": "+1 281-555-0147"
+   }
+  },
+  {
+   "id": "fmt-zip-plus4",
+   "title": "ZIP+4 and 9-digit ZIP",
+   "why": "Payers store ZIP+4; normalization truncates to five digits.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Darnell",
+    "family_name": "Price",
+    "dob": "1979-02-08",
+    "sex": "M",
+    "zip": "77033",
+    "phone": "7135550190",
+    "ssn": "452887123"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Darnell",
+    "family_name": "Price",
+    "dob": "1979-02-08",
+    "sex": "M",
+    "zip": "770331208",
+    "phone": "7135550190",
+    "ssn": "452887123"
+   }
+  },
+  {
+   "id": "fmt-sex-coding",
+   "title": "Sex coded as words vs letters vs U",
+   "why": "Female vs F vs U should not disagree.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Ngoc",
+    "family_name": "Pham",
+    "dob": "1972-09-14",
+    "sex": "Female",
+    "zip": "77083",
+    "phone": "8325550111",
+    "ssn": "637221984"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Ngoc",
+    "family_name": "Pham",
+    "dob": "1972-09-14",
+    "sex": "U",
+    "zip": "77083",
+    "phone": "8325550111"
+   }
+  },
+  {
+   "id": "typo-given-transposition",
+   "title": "Transposed letters in given name",
+   "why": "EJSSICA for JESSICA is a classic keying error.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Jessica",
+    "family_name": "Rodriguez",
+    "dob": "1998-07-13",
+    "sex": "F",
+    "zip": "77504",
+    "phone": "8325550127"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Ejssica",
+    "family_name": "Rodriguez",
+    "dob": "1998-07-13",
+    "sex": "F",
+    "zip": "77504",
+    "phone": "8325550127"
+   }
+  },
+  {
+   "id": "typo-family-dropped-letter",
+   "title": "Dropped letter in surname",
+   "why": "MATINEZ for MARTINEZ.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Maria",
+    "family_name": "Martinez",
+    "dob": "1990-11-11",
+    "sex": "F",
+    "zip": "77449",
+    "phone": "8325558666"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Maria",
+    "family_name": "Matinez",
+    "dob": "1990-11-11",
+    "sex": "F",
+    "zip": "77449",
+    "phone": "8325558666"
+   }
+  },
+  {
+   "id": "typo-first-letter",
+   "title": "Typo in the first letter of the surname",
+   "why": "Breaks Soundex blocking (first letter is kept verbatim) as well as exact agreement.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Brandon",
+    "family_name": "Kowalski",
+    "dob": "1993-04-22",
+    "sex": "M",
+    "zip": "77008",
+    "phone": "7135550178"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Brandon",
+    "family_name": "Lowalski",
+    "dob": "1993-04-22",
+    "sex": "M",
+    "zip": "77009",
+    "phone": "8325550199"
+   }
+  },
+  {
+   "id": "ssn-transposed",
+   "title": "Two SSN digits transposed",
+   "why": "Everything else agrees; SSN 'else' should not sink the pair.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Olivia",
+    "family_name": "Bennett",
+    "dob": "1985-06-02",
+    "sex": "F",
+    "zip": "77024",
+    "phone": "7135550165",
+    "ssn": "459234187"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Olivia",
+    "family_name": "Bennett",
+    "dob": "1985-06-02",
+    "sex": "F",
+    "zip": "77024",
+    "phone": "7135550165",
+    "ssn": "459243187"
+   }
+  },
+  {
+   "id": "ssn-last4-only",
+   "title": "Pharmacy stores SSN last four only",
+   "why": "4 digits normalize to nil; must not count against the pair.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Robert",
+    "family_name": "Jenkins",
+    "dob": "1958-12-01",
+    "sex": "M",
+    "zip": "77096",
+    "phone": "7135550101",
+    "ssn": "460118843"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Robert",
+    "family_name": "Jenkins",
+    "dob": "12/01/1958",
+    "sex": "M",
+    "zip": "77096",
+    "phone": "(713) 555-0101",
+    "ssn": "8843"
+   }
+  },
+  {
+   "id": "sparse-lab-record",
+   "title": "Lab requisition: name, DOB, sex only",
+   "why": "Thin records are common; name+DOB agreement on uncommon names should still be found.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Precious",
+    "family_name": "Okonkwo",
+    "dob": "1977-10-05",
+    "sex": "F",
+    "zip": "77489",
+    "phone": "2815550109",
+    "ssn": "633712004"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "PRECIOUS",
+    "family_name": "OKONKWO",
+    "dob": "10/5/1977",
+    "sex": "U"
+   }
+  },
+  {
+   "id": "moved-and-new-phone",
+   "title": "Moved across town and changed phone",
+   "why": "Same name, DOB, SSN; contact info entirely different years later.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Gloria",
+    "family_name": "Hampton",
+    "dob": "1949-03-27",
+    "sex": "F",
+    "zip": "77016",
+    "phone": "7135550183",
+    "ssn": "452662190"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Gloria",
+    "family_name": "Hampton",
+    "dob": "1949-03-27",
+    "sex": "F",
+    "zip": "77459",
+    "phone": "8325550144",
+    "ssn": "452662190"
+   }
+  },
+  {
+   "id": "truncated-lab-names",
+   "title": "Fixed-width lab name fields",
+   "why": "CHRISTOPHERSON truncated to 12 characters, given to 10.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Maximiliano",
+    "family_name": "Christopherson",
+    "dob": "2001-08-16",
+    "sex": "M",
+    "zip": "77494",
+    "phone": "8325550172"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "MAXIMILIAN",
+    "family_name": "CHRISTOPHER",
+    "dob": "8/16/2001",
+    "sex": "M",
+    "zip": "77494"
+   }
+  }
+ ]
+}

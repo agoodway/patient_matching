@@ -1,0 +1,134 @@
+{
+ "category": "clustering & chaining",
+ "description": "Dedupe a small file and check the clusters. Match edges are merged transitively, so one bad edge can chain a household into one person.",
+ "cases": [
+  {
+   "id": "household-chain",
+   "title": "Household chained through shared phone",
+   "why": "Mother, father and child share a landline. The mother has two true records. Only those two should cluster.",
+   "risk": "overlay",
+   "records": [
+    {
+     "id": "A1",
+     "given_name": "Rosa",
+     "family_name": "Espinoza",
+     "dob": "1985-07-21",
+     "sex": "F",
+     "zip": "77015",
+     "phone": "3465550158"
+    },
+    {
+     "id": "A2",
+     "given_name": "Rosa",
+     "family_name": "Espinoza",
+     "dob": "07/21/1985",
+     "sex": "F",
+     "zip": "77015",
+     "phone": "(346) 555-0158"
+    },
+    {
+     "id": "A3",
+     "given_name": "Emma",
+     "family_name": "Espinoza",
+     "dob": "2023-07-26",
+     "sex": "F",
+     "zip": "77015",
+     "phone": "3465550158"
+    },
+    {
+     "id": "A4",
+     "given_name": "Miguel",
+     "family_name": "Espinoza",
+     "dob": "1983-02-02",
+     "sex": "M",
+     "zip": "77015",
+     "phone": "3465550158"
+    }
+   ],
+   "expect_clusters": [
+    [
+     "A1",
+     "A2"
+    ]
+   ]
+  },
+  {
+   "id": "junior-senior-chain",
+   "title": "Junior and senior with a missing-DOB record between them",
+   "why": "A DOB-less record looks like both men; it must not glue father and son together.",
+   "risk": "overlay",
+   "records": [
+    {
+     "id": "B1",
+     "given_name": "Calvin",
+     "family_name": "Smith",
+     "dob": "1958-02-11",
+     "sex": "M",
+     "zip": "77051",
+     "phone": "7135550113"
+    },
+    {
+     "id": "B2",
+     "given_name": "Calvin",
+     "family_name": "Smith",
+     "sex": "M",
+     "zip": "77051",
+     "phone": "7135550113"
+    },
+    {
+     "id": "B3",
+     "given_name": "Calvin",
+     "family_name": "Smith",
+     "dob": "1984-02-29",
+     "sex": "M",
+     "zip": "77051",
+     "phone": "7135550113"
+    }
+   ],
+   "expect_clusters": []
+  },
+  {
+   "id": "same-person-three-sources",
+   "title": "Same person across three systems",
+   "why": "Hospital, clinic, pharmacy records of one woman with format noise.",
+   "risk": "duplicate",
+   "records": [
+    {
+     "id": "C1",
+     "given_name": "María",
+     "family_name": "Jiménez",
+     "dob": "1985-12-18",
+     "sex": "F",
+     "zip": "77023",
+     "phone": "7135550112"
+    },
+    {
+     "id": "C2",
+     "given_name": "Maria",
+     "family_name": "Jimenez",
+     "dob": "12/18/1985",
+     "sex": "F",
+     "zip": "77023",
+     "phone": "713-555-0112",
+     "ssn": "644395227"
+    },
+    {
+     "id": "C3",
+     "given_name": "MARIA",
+     "family_name": "JIMENEZ",
+     "dob": "1985-12-18",
+     "sex": "F",
+     "zip": "77023",
+     "phone": "(713) 555-0112"
+    }
+   ],
+   "expect_clusters": [
+    [
+     "C1",
+     "C2",
+     "C3"
+    ]
+   ]
+  }
+ ]
+}

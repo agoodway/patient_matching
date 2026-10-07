@@ -1,0 +1,630 @@
+{
+ "category": "name variation",
+ "description": "Same person with culturally common name variation. All should be found; most should auto-match when identifiers agree.",
+ "cases": [
+  {
+   "id": "nick-bob-robert",
+   "title": "English nickname",
+   "why": "BOB vs ROBERT: Jaro-Winkler cannot see it and given_name3 blocking differs.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Robert",
+    "family_name": "Kessler",
+    "dob": "1955-01-19",
+    "sex": "M",
+    "zip": "77079",
+    "phone": "7135550111"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Bob",
+    "family_name": "Kessler",
+    "dob": "01/19/1955",
+    "sex": "M",
+    "zip": "77079",
+    "phone": "(713) 555-0111"
+   }
+  },
+  {
+   "id": "nick-peggy-margaret",
+   "title": "Nickname with no shared letters",
+   "why": "PEGGY vs MARGARET; identifiers agree.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Margaret",
+    "family_name": "Oleary",
+    "dob": "1946-05-30",
+    "sex": "F",
+    "zip": "77345",
+    "phone": "2815550122",
+    "ssn": "455003871"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Peggy",
+    "family_name": "O'Leary",
+    "dob": "1946-05-30",
+    "sex": "F",
+    "zip": "77345",
+    "phone": "2815550122",
+    "ssn": "455003871"
+   }
+  },
+  {
+   "id": "nick-chuy-jesus",
+   "title": "Spanish hypocoristic",
+   "why": "CHUY for JESUS at a community clinic.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Jesus",
+    "family_name": "Villarreal",
+    "dob": "1982-12-25",
+    "sex": "M",
+    "zip": "77093",
+    "phone": "8325550133"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Chuy",
+    "family_name": "Villarreal",
+    "dob": "12/25/1982",
+    "sex": "M",
+    "zip": "77093",
+    "phone": "832-555-0133"
+   }
+  },
+  {
+   "id": "nick-lupe-guadalupe",
+   "title": "GUADALUPE / LUPE",
+   "why": "Very common in Houston Hispanic population.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Guadalupe",
+    "family_name": "Ochoa",
+    "dob": "1968-12-12",
+    "sex": "F",
+    "zip": "77011",
+    "phone": "7135550144"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Lupe",
+    "family_name": "Ochoa",
+    "dob": "12/12/1968",
+    "sex": "F",
+    "zip": "77011",
+    "phone": "713-555-0144"
+   }
+  },
+  {
+   "id": "translit-mohammed",
+   "title": "Mohammed transliterations",
+   "why": "MOHAMMED / MUHAMMAD / MOHAMED are one name.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Mohammed",
+    "family_name": "Khan",
+    "dob": "1988-04-17",
+    "sex": "M",
+    "zip": "77072",
+    "phone": "8325550155",
+    "ssn": "637901223"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Muhammad",
+    "family_name": "Khan",
+    "dob": "1988-04-17",
+    "sex": "M",
+    "zip": "77072",
+    "phone": "8325550155",
+    "ssn": "637901223"
+   }
+  },
+  {
+   "id": "translit-nguyen-ngyuen",
+   "title": "NGUYEN misspelled",
+   "why": "NGYUEN appears constantly in free-text registration.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Thanh",
+    "family_name": "Nguyen",
+    "dob": "1975-03-03",
+    "sex": "M",
+    "zip": "77036",
+    "phone": "7135550166",
+    "ssn": "458330912"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Thanh",
+    "family_name": "Ngyuen",
+    "dob": "1975-03-03",
+    "sex": "M",
+    "zip": "77036",
+    "phone": "7135550166",
+    "ssn": "458330912"
+   }
+  },
+  {
+   "id": "compound-surname-first-only",
+   "title": "Compound Hispanic surname shortened",
+   "why": "GARCIA LOPEZ registered as GARCIA elsewhere.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Juan Carlos",
+    "family_name": "Garcia Lopez",
+    "dob": "1979-08-09",
+    "sex": "M",
+    "zip": "77081",
+    "phone": "7135550177"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Juan",
+    "family_name": "Garcia",
+    "dob": "08/09/1979",
+    "sex": "M",
+    "zip": "77081",
+    "phone": "7135550177"
+   }
+  },
+  {
+   "id": "compound-surname-hyphen",
+   "title": "Compound surname hyphenated",
+   "why": "GARCIA-LOPEZ normalizes to GARCIALOPEZ, which no longer equals GARCIA LOPEZ.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Ana",
+    "family_name": "Garcia Lopez",
+    "dob": "1991-01-23",
+    "sex": "F",
+    "zip": "77081",
+    "phone": "8325550188",
+    "ssn": "644210987"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Ana",
+    "family_name": "Garcia-Lopez",
+    "dob": "1991-01-23",
+    "sex": "F",
+    "zip": "77081",
+    "phone": "8325550188",
+    "ssn": "644210987"
+   }
+  },
+  {
+   "id": "compound-surname-maternal-only",
+   "title": "Only the maternal surname recorded",
+   "why": "LOPEZ alone: the paternal surname is lost; DOB and phone agree.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Ana",
+    "family_name": "Garcia Lopez",
+    "dob": "1991-01-23",
+    "sex": "F",
+    "zip": "77081",
+    "phone": "8325550188"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Ana",
+    "family_name": "Lopez",
+    "dob": "1991-01-23",
+    "sex": "F",
+    "zip": "77081",
+    "phone": "8325550188"
+   }
+  },
+  {
+   "id": "married-name-change",
+   "title": "Married surname",
+   "why": "Maiden name on old record, married name on new one; SSN and DOB agree.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Ashley",
+    "family_name": "Fontenot",
+    "dob": "1992-02-14",
+    "sex": "F",
+    "zip": "77006",
+    "phone": "7135550199",
+    "ssn": "458771233"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Ashley",
+    "family_name": "Broussard",
+    "dob": "1992-02-14",
+    "sex": "F",
+    "zip": "77584",
+    "phone": "8325550101",
+    "ssn": "458771233"
+   }
+  },
+  {
+   "id": "married-name-no-ssn",
+   "title": "Married surname, no SSN",
+   "why": "Name change plus move with only given name + DOB + sex in common.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Ashley",
+    "family_name": "Fontenot",
+    "dob": "1992-02-14",
+    "sex": "F",
+    "zip": "77006",
+    "phone": "7135550199"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Ashley",
+    "family_name": "Broussard",
+    "dob": "1992-02-14",
+    "sex": "F",
+    "zip": "77584",
+    "phone": "7135550199"
+   }
+  },
+  {
+   "id": "hyphenated-married",
+   "title": "Hyphenated married name",
+   "why": "FONTENOT-BROUSSARD vs FONTENOT.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Ashley",
+    "family_name": "Fontenot",
+    "dob": "1992-02-14",
+    "sex": "F",
+    "zip": "77006",
+    "phone": "7135550199",
+    "ssn": "458771233"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Ashley",
+    "family_name": "Fontenot-Broussard",
+    "dob": "1992-02-14",
+    "sex": "F",
+    "zip": "77006",
+    "phone": "7135550199",
+    "ssn": "458771233"
+   }
+  },
+  {
+   "id": "accent-jimenez",
+   "title": "Accented surname",
+   "why": "JIMÉNEZ keeps É through normalization; Soundex drops it and changes code.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Maria",
+    "family_name": "Jimenez",
+    "dob": "1985-12-18",
+    "sex": "F",
+    "zip": "77023",
+    "phone": "7135550112"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "María",
+    "family_name": "Jiménez",
+    "dob": "12/18/1985",
+    "sex": "F",
+    "zip": "77023",
+    "phone": "7135550112"
+   }
+  },
+  {
+   "id": "accent-munoz-no-phone",
+   "title": "Ñ in surname, no shared phone",
+   "why": "MUÑOZ vs MUNOZ with no phone or SSN to rescue it.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Jose",
+    "family_name": "Munoz",
+    "dob": "1970-06-06",
+    "sex": "M",
+    "zip": "77087",
+    "phone": "7135550123"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "José",
+    "family_name": "Muñoz",
+    "dob": "06/06/1970",
+    "sex": "M",
+    "zip": "77087"
+   }
+  },
+  {
+   "id": "particle-delacruz",
+   "title": "Particle spacing",
+   "why": "DE LA CRUZ vs DELACRUZ.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Rowena",
+    "family_name": "De La Cruz",
+    "dob": "1966-10-10",
+    "sex": "F",
+    "zip": "77099",
+    "phone": "2815550134",
+    "ssn": "629113408"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Rowena",
+    "family_name": "Delacruz",
+    "dob": "1966-10-10",
+    "sex": "F",
+    "zip": "77099",
+    "phone": "2815550134",
+    "ssn": "629113408"
+   }
+  },
+  {
+   "id": "particle-mc",
+   "title": "MC DONALD vs MCDONALD",
+   "why": "Space inside a surname survives normalization.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Keith",
+    "family_name": "Mc Donald",
+    "dob": "1963-07-04",
+    "sex": "M",
+    "zip": "77339",
+    "phone": "2815550145",
+    "ssn": "455228761"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Keith",
+    "family_name": "McDonald",
+    "dob": "1963-07-04",
+    "sex": "M",
+    "zip": "77339",
+    "phone": "2815550145",
+    "ssn": "455228761"
+   }
+  },
+  {
+   "id": "vietnamese-order-swap",
+   "title": "Vietnamese name order swapped",
+   "why": "NGUYEN VAN MINH entered with family and given reversed.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Minh",
+    "family_name": "Nguyen",
+    "dob": "1969-05-15",
+    "sex": "M",
+    "zip": "77072",
+    "phone": "7135550156",
+    "ssn": "637004412"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Nguyen",
+    "family_name": "Minh",
+    "dob": "05/15/1969",
+    "sex": "M",
+    "zip": "77072",
+    "phone": "7135550156"
+   }
+  },
+  {
+   "id": "chinese-order-swap",
+   "title": "Chinese name order swapped",
+   "why": "WANG WEI vs WEI WANG.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Wei",
+    "family_name": "Wang",
+    "dob": "1980-09-09",
+    "sex": "M",
+    "zip": "77036",
+    "phone": "8325550167"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Wang",
+    "family_name": "Wei",
+    "dob": "1980-09-09",
+    "sex": "M",
+    "zip": "77036",
+    "phone": "8325550167"
+   }
+  },
+  {
+   "id": "vietnamese-middle-in-given",
+   "title": "Vietnamese middle name in given field",
+   "why": "THI LAN vs LAN.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Lan",
+    "family_name": "Tran",
+    "dob": "1958-01-01",
+    "sex": "F",
+    "zip": "77083",
+    "phone": "2815550178",
+    "ssn": "458112093"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Thi Lan",
+    "family_name": "Tran",
+    "dob": "1958-01-01",
+    "sex": "F",
+    "zip": "77083",
+    "phone": "2815550178",
+    "ssn": "458112093"
+   }
+  },
+  {
+   "id": "english-name",
+   "title": "Adopted English name",
+   "why": "Registered as XIAOMING in one system and DAVID in another; identifiers agree.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Xiaoming",
+    "family_name": "Li",
+    "dob": "1983-11-21",
+    "sex": "M",
+    "zip": "77479",
+    "phone": "8325550189",
+    "ssn": "645330981"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "David",
+    "family_name": "Li",
+    "dob": "1983-11-21",
+    "sex": "M",
+    "zip": "77479",
+    "phone": "8325550189",
+    "ssn": "645330981"
+   }
+  },
+  {
+   "id": "goes-by-middle",
+   "title": "Goes by middle name",
+   "why": "LEWIS ANDREW ALLEN goes by ANDREW.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Lewis",
+    "family_name": "Allen",
+    "dob": "1951-04-30",
+    "sex": "M",
+    "zip": "77068",
+    "phone": "2815550190"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Andrew",
+    "family_name": "Allen",
+    "dob": "1951-04-30",
+    "sex": "M",
+    "zip": "77068",
+    "phone": "2815550190"
+   }
+  },
+  {
+   "id": "middle-initial-in-given",
+   "title": "Middle initial appended to given name",
+   "why": "JOHN A vs JOHN.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "John",
+    "family_name": "Broussard",
+    "dob": "1974-08-28",
+    "sex": "M",
+    "zip": "77017",
+    "phone": "7135550102",
+    "ssn": "452009187"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "John A",
+    "family_name": "Broussard",
+    "dob": "1974-08-28",
+    "sex": "M",
+    "zip": "77017",
+    "phone": "7135550102",
+    "ssn": "452009187"
+   }
+  },
+  {
+   "id": "suffix-in-surname",
+   "title": "JR in the surname field",
+   "why": "SMITH JR vs SMITH for the same man.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Calvin",
+    "family_name": "Smith",
+    "dob": "1984-02-29",
+    "sex": "M",
+    "zip": "77051",
+    "phone": "7135550113",
+    "ssn": "461882014"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Calvin",
+    "family_name": "Smith Jr",
+    "dob": "1984-02-29",
+    "sex": "M",
+    "zip": "77051",
+    "phone": "7135550113",
+    "ssn": "461882014"
+   }
+  },
+  {
+   "id": "nigerian-short-form",
+   "title": "Yoruba name and its short form",
+   "why": "OLUWASEUN vs SEUN, OLUWAKEMI vs KEMI.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Oluwaseun",
+    "family_name": "Adeyemi",
+    "dob": "1986-06-21",
+    "sex": "M",
+    "zip": "77083",
+    "phone": "8325550124"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Seun",
+    "family_name": "Adeyemi",
+    "dob": "1986-06-21",
+    "sex": "M",
+    "zip": "77083",
+    "phone": "8325550124"
+   }
+  }
+ ]
+}

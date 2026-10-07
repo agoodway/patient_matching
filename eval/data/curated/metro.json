@@ -1,0 +1,1875 @@
+{
+ "_note": "Approximate Houston / Harris County, TX profile, hand-curated for synthetic data. Ethnic mix tracks the 2020 Census for Harris County to within about a point; ZIP shares, age shapes and origin mixes are rough approximations, not an official extract.",
+ "name": "Houston metro (Harris + Fort Bend + south Montgomery), TX",
+ "state": "TX",
+ "group_shares": {
+  "hispanic": 0.43,
+  "white": 0.277,
+  "black": 0.187,
+  "api": 0.073,
+  "aian": 0.003,
+  "multi": 0.03
+ },
+ "age_bins_years": 5,
+ "age_weights": {
+  "hispanic": [
+   85,
+   85,
+   85,
+   80,
+   80,
+   80,
+   80,
+   75,
+   70,
+   65,
+   55,
+   45,
+   35,
+   25,
+   18,
+   11,
+   7,
+   5
+  ],
+  "white": [
+   50,
+   50,
+   50,
+   55,
+   60,
+   65,
+   65,
+   60,
+   60,
+   60,
+   65,
+   70,
+   70,
+   65,
+   55,
+   40,
+   25,
+   25
+  ],
+  "black": [
+   70,
+   70,
+   70,
+   70,
+   75,
+   80,
+   80,
+   75,
+   70,
+   65,
+   65,
+   65,
+   60,
+   50,
+   35,
+   22,
+   13,
+   10
+  ],
+  "api": [
+   60,
+   60,
+   60,
+   60,
+   65,
+   75,
+   85,
+   85,
+   80,
+   75,
+   70,
+   65,
+   60,
+   50,
+   35,
+   25,
+   15,
+   10
+  ],
+  "aian": [
+   70,
+   70,
+   70,
+   70,
+   70,
+   75,
+   75,
+   70,
+   70,
+   65,
+   65,
+   60,
+   55,
+   45,
+   30,
+   20,
+   12,
+   8
+  ],
+  "multi": [
+   100,
+   100,
+   90,
+   90,
+   80,
+   70,
+   70,
+   60,
+   60,
+   50,
+   50,
+   40,
+   40,
+   30,
+   20,
+   15,
+   10,
+   5
+  ]
+ },
+ "utilization_by_age_bin": [
+  1.1,
+  0.7,
+  0.7,
+  0.8,
+  0.9,
+  1.1,
+  1.2,
+  1.2,
+  1.1,
+  1.1,
+  1.2,
+  1.4,
+  1.6,
+  1.9,
+  2.2,
+  2.5,
+  2.8,
+  3.0
+ ],
+ "origins": {
+  "hispanic": [
+   {
+    "origin": "mexican",
+    "share": 0.76,
+    "foreign_born": 0.36,
+    "double_surname": 0.45,
+    "jan1_dob": 0.02
+   },
+   {
+    "origin": "central_american",
+    "share": 0.17,
+    "foreign_born": 0.62,
+    "double_surname": 0.6,
+    "jan1_dob": 0.03
+   },
+   {
+    "origin": "other_hispanic",
+    "share": 0.07,
+    "foreign_born": 0.4,
+    "double_surname": 0.35,
+    "jan1_dob": 0.01
+   }
+  ],
+  "white": [
+   {
+    "origin": "us_white",
+    "share": 0.93,
+    "foreign_born": 0.04
+   },
+   {
+    "origin": "middle_eastern",
+    "share": 0.05,
+    "foreign_born": 0.55,
+    "jan1_dob": 0.1
+   },
+   {
+    "origin": "european",
+    "share": 0.02,
+    "foreign_born": 0.7
+   }
+  ],
+  "black": [
+   {
+    "origin": "african_american",
+    "share": 0.86,
+    "foreign_born": 0.02,
+    "junior_rate": 0.06
+   },
+   {
+    "origin": "nigerian",
+    "share": 0.07,
+    "foreign_born": 0.6,
+    "jan1_dob": 0.05
+   },
+   {
+    "origin": "caribbean_other_african",
+    "share": 0.07,
+    "foreign_born": 0.55,
+    "jan1_dob": 0.04
+   }
+  ],
+  "api": [
+   {
+    "origin": "vietnamese",
+    "share": 0.3,
+    "foreign_born": 0.62,
+    "name_order_swap": 0.1,
+    "jan1_dob": 0.06
+   },
+   {
+    "origin": "chinese",
+    "share": 0.2,
+    "foreign_born": 0.66,
+    "name_order_swap": 0.08
+   },
+   {
+    "origin": "indian",
+    "share": 0.22,
+    "foreign_born": 0.66,
+    "jan1_dob": 0.02
+   },
+   {
+    "origin": "pakistani",
+    "share": 0.05,
+    "foreign_born": 0.65,
+    "jan1_dob": 0.08
+   },
+   {
+    "origin": "filipino",
+    "share": 0.1,
+    "foreign_born": 0.6
+   },
+   {
+    "origin": "korean",
+    "share": 0.04,
+    "foreign_born": 0.65,
+    "name_order_swap": 0.05
+   },
+   {
+    "origin": "other_asian",
+    "share": 0.09,
+    "foreign_born": 0.6
+   }
+  ],
+  "aian": [
+   {
+    "origin": "native_american",
+    "share": 1.0,
+    "foreign_born": 0.02
+   }
+  ],
+  "multi": [
+   {
+    "origin": "multiracial",
+    "share": 1.0,
+    "foreign_born": 0.05
+   }
+  ]
+ },
+ "household_size_mean": {
+  "hispanic": 3.4,
+  "white": 2.3,
+  "black": 2.6,
+  "api": 3.1,
+  "aian": 2.8,
+  "multi": 2.6
+ },
+ "intermarriage_rate": 0.15,
+ "takes_spouse_surname": {
+  "hispanic": 0.55,
+  "white": 0.8,
+  "black": 0.7,
+  "api": 0.45,
+  "aian": 0.7,
+  "multi": 0.7
+ },
+ "hyphenates_surname": 0.05,
+ "junior_rate_default": 0.03,
+ "twin_rate": 0.016,
+ "annual_move_rate": {
+  "renter": 0.18,
+  "owner": 0.06
+ },
+ "renter_rate": {
+  "hispanic": 0.55,
+  "white": 0.35,
+  "black": 0.6,
+  "api": 0.4,
+  "aian": 0.55,
+  "multi": 0.55
+ },
+ "annual_phone_change_rate": 0.08,
+ "ssn": {
+  "no_ssn_given_foreign_born": 0.35,
+  "itin_given_no_ssn": 0.35,
+  "borrowed_ssn_given_no_ssn": 0.04
+ },
+ "insured_rate": {
+  "hispanic": 0.7,
+  "white": 0.9,
+  "black": 0.82,
+  "api": 0.86,
+  "aian": 0.75,
+  "multi": 0.82
+ },
+ "area_codes": {
+  "landline": [
+   "713",
+   "281"
+  ],
+  "cell": [
+   "832",
+   "281",
+   "713",
+   "346"
+  ]
+ },
+ "landline_rate_by_age_bin": [
+  0,
+  0,
+  0,
+  0,
+  0.05,
+  0.05,
+  0.05,
+  0.08,
+  0.1,
+  0.15,
+  0.2,
+  0.28,
+  0.35,
+  0.45,
+  0.55,
+  0.62,
+  0.7,
+  0.75
+ ],
+ "encounter_window": [
+  "2012-01-01",
+  "2026-09-30"
+ ],
+ "zips": [
+  {
+   "zip": "77002",
+   "population_k": 15,
+   "shares": {
+    "hispanic": 0.25,
+    "white": 0.4,
+    "black": 0.25,
+    "api": 0.07,
+    "aian": 0.003,
+    "multi": 0.027
+   }
+  },
+  {
+   "zip": "77003",
+   "population_k": 11,
+   "shares": {
+    "hispanic": 0.55,
+    "white": 0.3,
+    "black": 0.1,
+    "api": 0.03,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77004",
+   "population_k": 36,
+   "shares": {
+    "hispanic": 0.15,
+    "white": 0.25,
+    "black": 0.45,
+    "api": 0.13,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77005",
+   "population_k": 27,
+   "shares": {
+    "hispanic": 0.08,
+    "white": 0.75,
+    "black": 0.02,
+    "api": 0.13,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77006",
+   "population_k": 22,
+   "shares": {
+    "hispanic": 0.2,
+    "white": 0.62,
+    "black": 0.08,
+    "api": 0.08,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77007",
+   "population_k": 38,
+   "shares": {
+    "hispanic": 0.25,
+    "white": 0.6,
+    "black": 0.07,
+    "api": 0.06,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77008",
+   "population_k": 36,
+   "shares": {
+    "hispanic": 0.25,
+    "white": 0.62,
+    "black": 0.06,
+    "api": 0.05,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77009",
+   "population_k": 40,
+   "shares": {
+    "hispanic": 0.65,
+    "white": 0.25,
+    "black": 0.07,
+    "api": 0.02,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77011",
+   "population_k": 20,
+   "shares": {
+    "hispanic": 0.9,
+    "white": 0.04,
+    "black": 0.04,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77012",
+   "population_k": 20,
+   "shares": {
+    "hispanic": 0.88,
+    "white": 0.04,
+    "black": 0.06,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77013",
+   "population_k": 20,
+   "shares": {
+    "hispanic": 0.7,
+    "white": 0.04,
+    "black": 0.25,
+    "api": 0.01,
+    "aian": 0.0,
+    "multi": 0.0
+   }
+  },
+  {
+   "zip": "77015",
+   "population_k": 60,
+   "shares": {
+    "hispanic": 0.73,
+    "white": 0.12,
+    "black": 0.13,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77016",
+   "population_k": 30,
+   "shares": {
+    "hispanic": 0.3,
+    "white": 0.04,
+    "black": 0.64,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77017",
+   "population_k": 32,
+   "shares": {
+    "hispanic": 0.8,
+    "white": 0.12,
+    "black": 0.05,
+    "api": 0.02,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77018",
+   "population_k": 28,
+   "shares": {
+    "hispanic": 0.4,
+    "white": 0.48,
+    "black": 0.07,
+    "api": 0.03,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77019",
+   "population_k": 22,
+   "shares": {
+    "hispanic": 0.15,
+    "white": 0.68,
+    "black": 0.07,
+    "api": 0.08,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77020",
+   "population_k": 22,
+   "shares": {
+    "hispanic": 0.75,
+    "white": 0.03,
+    "black": 0.2,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77021",
+   "population_k": 28,
+   "shares": {
+    "hispanic": 0.25,
+    "white": 0.04,
+    "black": 0.65,
+    "api": 0.05,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77022",
+   "population_k": 30,
+   "shares": {
+    "hispanic": 0.8,
+    "white": 0.05,
+    "black": 0.14,
+    "api": 0.01,
+    "aian": 0.0,
+    "multi": 0.0
+   }
+  },
+  {
+   "zip": "77023",
+   "population_k": 30,
+   "shares": {
+    "hispanic": 0.86,
+    "white": 0.08,
+    "black": 0.04,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77024",
+   "population_k": 38,
+   "shares": {
+    "hispanic": 0.15,
+    "white": 0.72,
+    "black": 0.03,
+    "api": 0.08,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77025",
+   "population_k": 30,
+   "shares": {
+    "hispanic": 0.25,
+    "white": 0.45,
+    "black": 0.15,
+    "api": 0.13,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77026",
+   "population_k": 22,
+   "shares": {
+    "hispanic": 0.45,
+    "white": 0.03,
+    "black": 0.5,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77027",
+   "population_k": 16,
+   "shares": {
+    "hispanic": 0.18,
+    "white": 0.65,
+    "black": 0.07,
+    "api": 0.08,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77028",
+   "population_k": 17,
+   "shares": {
+    "hispanic": 0.3,
+    "white": 0.02,
+    "black": 0.66,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77029",
+   "population_k": 17,
+   "shares": {
+    "hispanic": 0.7,
+    "white": 0.07,
+    "black": 0.22,
+    "api": 0.0,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77030",
+   "population_k": 12,
+   "shares": {
+    "hispanic": 0.12,
+    "white": 0.5,
+    "black": 0.12,
+    "api": 0.24,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77031",
+   "population_k": 16,
+   "shares": {
+    "hispanic": 0.35,
+    "white": 0.07,
+    "black": 0.4,
+    "api": 0.16,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77033",
+   "population_k": 27,
+   "shares": {
+    "hispanic": 0.4,
+    "white": 0.02,
+    "black": 0.56,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77034",
+   "population_k": 40,
+   "shares": {
+    "hispanic": 0.65,
+    "white": 0.17,
+    "black": 0.12,
+    "api": 0.05,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77035",
+   "population_k": 37,
+   "shares": {
+    "hispanic": 0.4,
+    "white": 0.12,
+    "black": 0.38,
+    "api": 0.08,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77036",
+   "population_k": 75,
+   "shares": {
+    "hispanic": 0.6,
+    "white": 0.08,
+    "black": 0.14,
+    "api": 0.17,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77037",
+   "population_k": 20,
+   "shares": {
+    "hispanic": 0.83,
+    "white": 0.07,
+    "black": 0.09,
+    "api": 0.01,
+    "aian": 0.0,
+    "multi": 0.0
+   }
+  },
+  {
+   "zip": "77038",
+   "population_k": 32,
+   "shares": {
+    "hispanic": 0.55,
+    "white": 0.08,
+    "black": 0.32,
+    "api": 0.04,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77039",
+   "population_k": 30,
+   "shares": {
+    "hispanic": 0.75,
+    "white": 0.05,
+    "black": 0.18,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77040",
+   "population_k": 50,
+   "shares": {
+    "hispanic": 0.42,
+    "white": 0.3,
+    "black": 0.12,
+    "api": 0.14,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77041",
+   "population_k": 38,
+   "shares": {
+    "hispanic": 0.4,
+    "white": 0.35,
+    "black": 0.13,
+    "api": 0.1,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77042",
+   "population_k": 40,
+   "shares": {
+    "hispanic": 0.35,
+    "white": 0.35,
+    "black": 0.15,
+    "api": 0.12,
+    "aian": 0.003,
+    "multi": 0.027
+   }
+  },
+  {
+   "zip": "77044",
+   "population_k": 70,
+   "shares": {
+    "hispanic": 0.45,
+    "white": 0.17,
+    "black": 0.33,
+    "api": 0.03,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77045",
+   "population_k": 33,
+   "shares": {
+    "hispanic": 0.4,
+    "white": 0.03,
+    "black": 0.54,
+    "api": 0.02,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77047",
+   "population_k": 28,
+   "shares": {
+    "hispanic": 0.35,
+    "white": 0.05,
+    "black": 0.53,
+    "api": 0.06,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77048",
+   "population_k": 17,
+   "shares": {
+    "hispanic": 0.3,
+    "white": 0.03,
+    "black": 0.65,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77049",
+   "population_k": 45,
+   "shares": {
+    "hispanic": 0.55,
+    "white": 0.13,
+    "black": 0.3,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77051",
+   "population_k": 18,
+   "shares": {
+    "hispanic": 0.2,
+    "white": 0.02,
+    "black": 0.77,
+    "api": 0.01,
+    "aian": 0.0,
+    "multi": 0.0
+   }
+  },
+  {
+   "zip": "77053",
+   "population_k": 32,
+   "shares": {
+    "hispanic": 0.35,
+    "white": 0.02,
+    "black": 0.6,
+    "api": 0.02,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77054",
+   "population_k": 25,
+   "shares": {
+    "hispanic": 0.2,
+    "white": 0.2,
+    "black": 0.45,
+    "api": 0.13,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77055",
+   "population_k": 45,
+   "shares": {
+    "hispanic": 0.62,
+    "white": 0.28,
+    "black": 0.05,
+    "api": 0.04,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77056",
+   "population_k": 22,
+   "shares": {
+    "hispanic": 0.15,
+    "white": 0.65,
+    "black": 0.07,
+    "api": 0.11,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77057",
+   "population_k": 42,
+   "shares": {
+    "hispanic": 0.35,
+    "white": 0.4,
+    "black": 0.14,
+    "api": 0.09,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77058",
+   "population_k": 20,
+   "shares": {
+    "hispanic": 0.22,
+    "white": 0.55,
+    "black": 0.1,
+    "api": 0.12,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77060",
+   "population_k": 45,
+   "shares": {
+    "hispanic": 0.75,
+    "white": 0.06,
+    "black": 0.17,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77062",
+   "population_k": 27,
+   "shares": {
+    "hispanic": 0.25,
+    "white": 0.55,
+    "black": 0.1,
+    "api": 0.09,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77063",
+   "population_k": 37,
+   "shares": {
+    "hispanic": 0.38,
+    "white": 0.33,
+    "black": 0.17,
+    "api": 0.1,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77064",
+   "population_k": 45,
+   "shares": {
+    "hispanic": 0.3,
+    "white": 0.4,
+    "black": 0.18,
+    "api": 0.1,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77066",
+   "population_k": 36,
+   "shares": {
+    "hispanic": 0.4,
+    "white": 0.2,
+    "black": 0.33,
+    "api": 0.06,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77067",
+   "population_k": 32,
+   "shares": {
+    "hispanic": 0.48,
+    "white": 0.05,
+    "black": 0.43,
+    "api": 0.03,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77068",
+   "population_k": 12,
+   "shares": {
+    "hispanic": 0.25,
+    "white": 0.55,
+    "black": 0.15,
+    "api": 0.04,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77070",
+   "population_k": 48,
+   "shares": {
+    "hispanic": 0.25,
+    "white": 0.55,
+    "black": 0.1,
+    "api": 0.08,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77071",
+   "population_k": 27,
+   "shares": {
+    "hispanic": 0.35,
+    "white": 0.1,
+    "black": 0.45,
+    "api": 0.09,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77072",
+   "population_k": 45,
+   "shares": {
+    "hispanic": 0.45,
+    "white": 0.06,
+    "black": 0.25,
+    "api": 0.23,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77073",
+   "population_k": 50,
+   "shares": {
+    "hispanic": 0.5,
+    "white": 0.12,
+    "black": 0.33,
+    "api": 0.04,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77074",
+   "population_k": 40,
+   "shares": {
+    "hispanic": 0.55,
+    "white": 0.08,
+    "black": 0.17,
+    "api": 0.19,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77075",
+   "population_k": 45,
+   "shares": {
+    "hispanic": 0.63,
+    "white": 0.1,
+    "black": 0.2,
+    "api": 0.06,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77076",
+   "population_k": 36,
+   "shares": {
+    "hispanic": 0.85,
+    "white": 0.07,
+    "black": 0.06,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77077",
+   "population_k": 55,
+   "shares": {
+    "hispanic": 0.3,
+    "white": 0.38,
+    "black": 0.15,
+    "api": 0.15,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77079",
+   "population_k": 35,
+   "shares": {
+    "hispanic": 0.25,
+    "white": 0.52,
+    "black": 0.08,
+    "api": 0.13,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77080",
+   "population_k": 48,
+   "shares": {
+    "hispanic": 0.68,
+    "white": 0.2,
+    "black": 0.07,
+    "api": 0.04,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77081",
+   "population_k": 53,
+   "shares": {
+    "hispanic": 0.72,
+    "white": 0.1,
+    "black": 0.1,
+    "api": 0.07,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77082",
+   "population_k": 55,
+   "shares": {
+    "hispanic": 0.38,
+    "white": 0.2,
+    "black": 0.23,
+    "api": 0.17,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77083",
+   "population_k": 75,
+   "shares": {
+    "hispanic": 0.35,
+    "white": 0.1,
+    "black": 0.22,
+    "api": 0.31,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77084",
+   "population_k": 110,
+   "shares": {
+    "hispanic": 0.45,
+    "white": 0.28,
+    "black": 0.14,
+    "api": 0.11,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77085",
+   "population_k": 17,
+   "shares": {
+    "hispanic": 0.4,
+    "white": 0.05,
+    "black": 0.5,
+    "api": 0.04,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77086",
+   "population_k": 32,
+   "shares": {
+    "hispanic": 0.62,
+    "white": 0.05,
+    "black": 0.3,
+    "api": 0.02,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77087",
+   "population_k": 35,
+   "shares": {
+    "hispanic": 0.7,
+    "white": 0.1,
+    "black": 0.17,
+    "api": 0.02,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77088",
+   "population_k": 50,
+   "shares": {
+    "hispanic": 0.45,
+    "white": 0.04,
+    "black": 0.5,
+    "api": 0.01,
+    "aian": 0.0,
+    "multi": 0.0
+   }
+  },
+  {
+   "zip": "77089",
+   "population_k": 55,
+   "shares": {
+    "hispanic": 0.52,
+    "white": 0.22,
+    "black": 0.15,
+    "api": 0.09,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77090",
+   "population_k": 38,
+   "shares": {
+    "hispanic": 0.45,
+    "white": 0.18,
+    "black": 0.3,
+    "api": 0.06,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77091",
+   "population_k": 25,
+   "shares": {
+    "hispanic": 0.45,
+    "white": 0.1,
+    "black": 0.43,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77092",
+   "population_k": 40,
+   "shares": {
+    "hispanic": 0.6,
+    "white": 0.27,
+    "black": 0.08,
+    "api": 0.04,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77093",
+   "population_k": 47,
+   "shares": {
+    "hispanic": 0.9,
+    "white": 0.03,
+    "black": 0.06,
+    "api": 0.01,
+    "aian": 0.0,
+    "multi": 0.0
+   }
+  },
+  {
+   "zip": "77095",
+   "population_k": 70,
+   "shares": {
+    "hispanic": 0.22,
+    "white": 0.5,
+    "black": 0.1,
+    "api": 0.16,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77096",
+   "population_k": 33,
+   "shares": {
+    "hispanic": 0.3,
+    "white": 0.4,
+    "black": 0.15,
+    "api": 0.13,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77098",
+   "population_k": 15,
+   "shares": {
+    "hispanic": 0.15,
+    "white": 0.7,
+    "black": 0.05,
+    "api": 0.08,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77099",
+   "population_k": 50,
+   "shares": {
+    "hispanic": 0.45,
+    "white": 0.05,
+    "black": 0.3,
+    "api": 0.19,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77338",
+   "population_k": 45,
+   "shares": {
+    "hispanic": 0.5,
+    "white": 0.2,
+    "black": 0.26,
+    "api": 0.03,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77339",
+   "population_k": 42,
+   "shares": {
+    "hispanic": 0.18,
+    "white": 0.7,
+    "black": 0.07,
+    "api": 0.04,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77345",
+   "population_k": 28,
+   "shares": {
+    "hispanic": 0.13,
+    "white": 0.76,
+    "black": 0.04,
+    "api": 0.05,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77373",
+   "population_k": 70,
+   "shares": {
+    "hispanic": 0.45,
+    "white": 0.25,
+    "black": 0.22,
+    "api": 0.06,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77379",
+   "population_k": 80,
+   "shares": {
+    "hispanic": 0.2,
+    "white": 0.62,
+    "black": 0.08,
+    "api": 0.08,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77388",
+   "population_k": 55,
+   "shares": {
+    "hispanic": 0.25,
+    "white": 0.55,
+    "black": 0.12,
+    "api": 0.06,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77396",
+   "population_k": 55,
+   "shares": {
+    "hispanic": 0.45,
+    "white": 0.15,
+    "black": 0.36,
+    "api": 0.03,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77401",
+   "population_k": 17,
+   "shares": {
+    "hispanic": 0.12,
+    "white": 0.68,
+    "black": 0.03,
+    "api": 0.15,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77407",
+   "population_k": 85,
+   "shares": {
+    "hispanic": 0.23,
+    "white": 0.2,
+    "black": 0.25,
+    "api": 0.3,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77429",
+   "population_k": 85,
+   "shares": {
+    "hispanic": 0.22,
+    "white": 0.55,
+    "black": 0.1,
+    "api": 0.11,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77433",
+   "population_k": 100,
+   "shares": {
+    "hispanic": 0.3,
+    "white": 0.4,
+    "black": 0.13,
+    "api": 0.15,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77449",
+   "population_k": 130,
+   "shares": {
+    "hispanic": 0.45,
+    "white": 0.15,
+    "black": 0.22,
+    "api": 0.16,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77450",
+   "population_k": 80,
+   "shares": {
+    "hispanic": 0.18,
+    "white": 0.5,
+    "black": 0.08,
+    "api": 0.22,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77459",
+   "population_k": 90,
+   "shares": {
+    "hispanic": 0.18,
+    "white": 0.35,
+    "black": 0.2,
+    "api": 0.25,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77469",
+   "population_k": 80,
+   "shares": {
+    "hispanic": 0.3,
+    "white": 0.35,
+    "black": 0.25,
+    "api": 0.08,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77477",
+   "population_k": 40,
+   "shares": {
+    "hispanic": 0.35,
+    "white": 0.08,
+    "black": 0.33,
+    "api": 0.22,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77478",
+   "population_k": 65,
+   "shares": {
+    "hispanic": 0.18,
+    "white": 0.25,
+    "black": 0.2,
+    "api": 0.35,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77479",
+   "population_k": 85,
+   "shares": {
+    "hispanic": 0.12,
+    "white": 0.37,
+    "black": 0.12,
+    "api": 0.37,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77489",
+   "population_k": 38,
+   "shares": {
+    "hispanic": 0.3,
+    "white": 0.06,
+    "black": 0.58,
+    "api": 0.05,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77493",
+   "population_k": 60,
+   "shares": {
+    "hispanic": 0.38,
+    "white": 0.4,
+    "black": 0.12,
+    "api": 0.08,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77494",
+   "population_k": 120,
+   "shares": {
+    "hispanic": 0.18,
+    "white": 0.46,
+    "black": 0.08,
+    "api": 0.27,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77498",
+   "population_k": 55,
+   "shares": {
+    "hispanic": 0.18,
+    "white": 0.2,
+    "black": 0.27,
+    "api": 0.33,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77502",
+   "population_k": 38,
+   "shares": {
+    "hispanic": 0.8,
+    "white": 0.12,
+    "black": 0.05,
+    "api": 0.02,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77503",
+   "population_k": 33,
+   "shares": {
+    "hispanic": 0.7,
+    "white": 0.2,
+    "black": 0.07,
+    "api": 0.02,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77504",
+   "population_k": 27,
+   "shares": {
+    "hispanic": 0.62,
+    "white": 0.3,
+    "black": 0.04,
+    "api": 0.03,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77506",
+   "population_k": 55,
+   "shares": {
+    "hispanic": 0.82,
+    "white": 0.1,
+    "black": 0.06,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77520",
+   "population_k": 37,
+   "shares": {
+    "hispanic": 0.47,
+    "white": 0.27,
+    "black": 0.24,
+    "api": 0.01,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77521",
+   "population_k": 70,
+   "shares": {
+    "hispanic": 0.42,
+    "white": 0.3,
+    "black": 0.24,
+    "api": 0.02,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77530",
+   "population_k": 40,
+   "shares": {
+    "hispanic": 0.62,
+    "white": 0.25,
+    "black": 0.1,
+    "api": 0.01,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77536",
+   "population_k": 35,
+   "shares": {
+    "hispanic": 0.38,
+    "white": 0.55,
+    "black": 0.03,
+    "api": 0.02,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77546",
+   "population_k": 55,
+   "shares": {
+    "hispanic": 0.22,
+    "white": 0.65,
+    "black": 0.06,
+    "api": 0.06,
+    "aian": 0.001,
+    "multi": 0.009
+   }
+  },
+  {
+   "zip": "77573",
+   "population_k": 80,
+   "shares": {
+    "hispanic": 0.27,
+    "white": 0.55,
+    "black": 0.1,
+    "api": 0.06,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77581",
+   "population_k": 55,
+   "shares": {
+    "hispanic": 0.28,
+    "white": 0.48,
+    "black": 0.12,
+    "api": 0.1,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77584",
+   "population_k": 85,
+   "shares": {
+    "hispanic": 0.25,
+    "white": 0.38,
+    "black": 0.2,
+    "api": 0.15,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  },
+  {
+   "zip": "77598",
+   "population_k": 27,
+   "shares": {
+    "hispanic": 0.35,
+    "white": 0.4,
+    "black": 0.15,
+    "api": 0.08,
+    "aian": 0.002,
+    "multi": 0.018
+   }
+  }
+ ],
+ "streets": [
+  "BELLAIRE BLVD",
+  "BISSONNET ST",
+  "HILLCROFT AVE",
+  "GESSNER RD",
+  "FONDREN RD",
+  "BEECHNUT ST",
+  "WESTHEIMER RD",
+  "RICHMOND AVE",
+  "WILCREST DR",
+  "KIRKWOOD RD",
+  "ALIEF CLODINE RD",
+  "HIGH STAR DR",
+  "GULFTON ST",
+  "RENWICK DR",
+  "SOUTHWEST FWY",
+  "MAIN ST",
+  "FANNIN ST",
+  "ALMEDA RD",
+  "CULLEN BLVD",
+  "MARTIN LUTHER KING BLVD",
+  "SCOTT ST",
+  "LYONS AVE",
+  "JENSEN DR",
+  "AIRLINE DR",
+  "IRVINGTON BLVD",
+  "FULTON ST",
+  "AIRLINE DR",
+  "ALDINE BENDER RD",
+  "GREENS RD",
+  "IMPERIAL VALLEY DR",
+  "ELLA BLVD",
+  "ANTOINE DR",
+  "W LITTLE YORK RD",
+  "TIDWELL RD",
+  "PARKER RD",
+  "LONG DR",
+  "TELEPHONE RD",
+  "HARRISBURG BLVD",
+  "NAVIGATION BLVD",
+  "CANAL ST",
+  "WAYSIDE DR",
+  "BROADWAY ST",
+  "SPENCER HWY",
+  "RED BLUFF RD",
+  "FAIRMONT PKWY",
+  "EL CAMINO REAL",
+  "BAY AREA BLVD",
+  "NASA PKWY",
+  "FM 1960 RD",
+  "LOUETTA RD",
+  "CYPRESSWOOD DR",
+  "SPRING CYPRESS RD",
+  "BARKER CYPRESS RD",
+  "MASON RD",
+  "FRY RD",
+  "PEEK RD",
+  "S MASON RD",
+  "KATY FWY",
+  "WESTPARK TOLLWAY",
+  "SUGAR LAND HOWELL RD",
+  "DAIRY ASHFORD RD",
+  "KIRBY DR",
+  "SHEPHERD DR",
+  "DURHAM DR",
+  "YALE ST",
+  "STUDEWOOD ST",
+  "WASHINGTON AVE",
+  "MEMORIAL DR",
+  "SAN FELIPE ST",
+  "WOODWAY DR",
+  "POST OAK BLVD",
+  "CHIMNEY ROCK RD",
+  "BRAESWOOD BLVD",
+  "ORANGE BLOSSOM LN",
+  "MAGNOLIA BEND DR",
+  "CEDAR CREEK DR",
+  "WILLOW BROOK LN",
+  "PECAN GROVE DR",
+  "OAK HOLLOW DR",
+  "BLUEBONNET LN",
+  "MESQUITE TRL",
+  "LANTERN POINT DR",
+  "SUNNY MEADOW LN",
+  "RIVER BEND DR",
+  "LAKE FOREST DR"
+ ]
+}

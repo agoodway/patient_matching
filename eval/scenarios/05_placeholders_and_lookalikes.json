@@ -1,0 +1,274 @@
+{
+ "category": "placeholders & lookalikes",
+ "description": "Different people whose records agree on placeholder or very common values.",
+ "cases": [
+  {
+   "id": "trauma-aliases",
+   "title": "Two unrelated trauma aliases",
+   "why": "Both JOHN DOE with the 1900-01-01 placeholder DOB and nothing else.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "John",
+    "family_name": "Doe",
+    "dob": "1900-01-01",
+    "sex": "M"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "John",
+    "family_name": "Doe",
+    "dob": "1900-01-01",
+    "sex": "M"
+   }
+  },
+  {
+   "id": "trauma-alias-vs-real",
+   "title": "Trauma alias vs a real patient",
+   "why": "TRAUMA ALPHA must not attach to a real chart.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Trauma",
+    "family_name": "Alpha",
+    "dob": "1900-01-01",
+    "sex": "M"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Brian",
+    "family_name": "Albers",
+    "dob": "1990-05-05",
+    "sex": "M",
+    "zip": "77007",
+    "phone": "7135550115",
+    "ssn": "455002811"
+   }
+  },
+  {
+   "id": "placeholder-ssn",
+   "title": "Placeholder SSN on unrelated people",
+   "why": "123-45-6789 is a default entry in some systems.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Teresa",
+    "family_name": "Alvarado",
+    "dob": "1977-02-13",
+    "sex": "F",
+    "zip": "77017",
+    "phone": "7135550126",
+    "ssn": "123456789"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Kevin",
+    "family_name": "Nguyen",
+    "dob": "1994-09-02",
+    "sex": "M",
+    "zip": "77083",
+    "phone": "8325550137",
+    "ssn": "123456789"
+   }
+  },
+  {
+   "id": "placeholder-ssn-zeros",
+   "title": "All-zero SSN",
+   "why": "000-00-0000 on unrelated people.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Teresa",
+    "family_name": "Alvarado",
+    "dob": "1977-02-13",
+    "sex": "F",
+    "zip": "77017",
+    "phone": "7135550126",
+    "ssn": "000000000"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Kevin",
+    "family_name": "Nguyen",
+    "dob": "1994-09-02",
+    "sex": "M",
+    "zip": "77083",
+    "phone": "8325550137",
+    "ssn": "000-00-0000"
+   }
+  },
+  {
+   "id": "placeholder-phone",
+   "title": "Placeholder phone on unrelated people",
+   "why": "0000000000 typed to get past a required field.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Leticia",
+    "family_name": "Rangel",
+    "dob": "1983-03-03",
+    "sex": "F",
+    "zip": "77012",
+    "phone": "0000000000"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Marcus",
+    "family_name": "Bell",
+    "dob": "1969-12-01",
+    "sex": "M",
+    "zip": "77028",
+    "phone": "0000000000"
+   }
+  },
+  {
+   "id": "clinic-phone",
+   "title": "Clinic main line used as patient phone",
+   "why": "Front desk enters the facility number when the patient has none.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Leticia",
+    "family_name": "Rangel",
+    "dob": "1983-03-03",
+    "sex": "F",
+    "zip": "77036",
+    "phone": "7135551212"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Leticia",
+    "family_name": "Rivas",
+    "dob": "1983-09-20",
+    "sex": "F",
+    "zip": "77036",
+    "phone": "7135551212"
+   }
+  },
+  {
+   "id": "common-name-same-dob",
+   "title": "Two different MARIA GARCIAs, same DOB",
+   "why": "Very common name; DOB collision is likely in a metro of millions.",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Maria",
+    "family_name": "Garcia",
+    "dob": "1985-04-12",
+    "sex": "F",
+    "zip": "77081",
+    "phone": "8325550148"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Maria",
+    "family_name": "Garcia",
+    "dob": "1985-04-12",
+    "sex": "F",
+    "zip": "77506",
+    "phone": "7135550159"
+   }
+  },
+  {
+   "id": "common-name-jan1",
+   "title": "Two NGUYEN THI LANs with Jan 1 DOBs",
+   "why": "Common name plus estimated Jan 1 birthday.",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Thi Lan",
+    "family_name": "Nguyen",
+    "dob": "1962-01-01",
+    "sex": "F",
+    "zip": "77072"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Thi Lan",
+    "family_name": "Nguyen",
+    "dob": "1962-01-01",
+    "sex": "F",
+    "zip": "77036"
+   }
+  },
+  {
+   "id": "common-name-jan1-short",
+   "title": "Two LAN NGUYENs with Jan 1 DOBs, short form",
+   "why": "Same as above with the more common LAN NGUYEN entry.",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Lan",
+    "family_name": "Nguyen",
+    "dob": "1962-01-01",
+    "sex": "F",
+    "zip": "77072"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Lan",
+    "family_name": "Nguyen",
+    "dob": "1962-01-01",
+    "sex": "F",
+    "zip": "77036"
+   }
+  },
+  {
+   "id": "common-name-khan",
+   "title": "Two MOHAMMAD KHANs same birth month",
+   "why": "Common name, DOB within the same month, different ZIPs.",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Mohammad",
+    "family_name": "Khan",
+    "dob": "1980-06-10",
+    "sex": "M",
+    "zip": "77072",
+    "phone": "8325550160"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Mohammad",
+    "family_name": "Khan",
+    "dob": "1980-06-27",
+    "sex": "M",
+    "zip": "77494",
+    "phone": "2815550171"
+   }
+  },
+  {
+   "id": "rare-name-same-dob",
+   "title": "Rare name, same DOB, nothing else",
+   "why": "Rare full name + exact DOB is strong evidence even without identifiers.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Zebulon",
+    "family_name": "Thibodeaux",
+    "dob": "1957-10-22",
+    "sex": "M",
+    "zip": "77546"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Zebulon",
+    "family_name": "Thibodeaux",
+    "dob": "1957-10-22",
+    "sex": "M",
+    "zip": "77598"
+   }
+  }
+ ]
+}

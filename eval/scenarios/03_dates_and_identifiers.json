@@ -1,0 +1,214 @@
+{
+ "category": "dates & identifiers",
+ "description": "Same person with realistic DOB and identifier errors.",
+ "cases": [
+  {
+   "id": "dob-day-month-swap",
+   "title": "Day and month swapped",
+   "why": "03/07 vs 07/03 from a DD/MM system or a foreign document.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Sandra",
+    "family_name": "Ayala",
+    "dob": "1976-03-07",
+    "sex": "F",
+    "zip": "77060",
+    "phone": "2815550135",
+    "ssn": "629448172"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Sandra",
+    "family_name": "Ayala",
+    "dob": "1976-07-03",
+    "sex": "F",
+    "zip": "77060",
+    "phone": "2815550135",
+    "ssn": "629448172"
+   }
+  },
+  {
+   "id": "dob-day-month-swap-no-ssn",
+   "title": "Day/month swap with no SSN",
+   "why": "Name, sex, zip and phone agree; DOB is the transposed date.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Sandra",
+    "family_name": "Ayala",
+    "dob": "1976-03-07",
+    "sex": "F",
+    "zip": "77060",
+    "phone": "2815550135"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Sandra",
+    "family_name": "Ayala",
+    "dob": "07/03/1976",
+    "sex": "F",
+    "zip": "77060",
+    "phone": "2815550135"
+   }
+  },
+  {
+   "id": "dob-year-digit-swap",
+   "title": "Year digits transposed",
+   "why": "1958 keyed as 1985.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Dolores",
+    "family_name": "Cantu",
+    "dob": "1958-09-12",
+    "sex": "F",
+    "zip": "77506",
+    "phone": "7135550146"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Dolores",
+    "family_name": "Cantu",
+    "dob": "1985-09-12",
+    "sex": "F",
+    "zip": "77506",
+    "phone": "7135550146"
+   }
+  },
+  {
+   "id": "dob-off-by-one-day",
+   "title": "DOB off by one day",
+   "why": "Within-one-day level exists for this.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Quentin",
+    "family_name": "Harris",
+    "dob": "2000-10-31",
+    "sex": "M",
+    "zip": "77088",
+    "phone": "8325550157"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Quentin",
+    "family_name": "Harris",
+    "dob": "2000-11-01",
+    "sex": "M",
+    "zip": "77088",
+    "phone": "8325550157"
+   }
+  },
+  {
+   "id": "dob-estimated-jan1",
+   "title": "Refugee with estimated DOB",
+   "why": "One system has the documented 01/01 placeholder birthday, the other the later-corrected date.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Abdi",
+    "family_name": "Hassan",
+    "dob": "1990-01-01",
+    "sex": "M",
+    "zip": "77042",
+    "phone": "7135550168"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Abdi",
+    "family_name": "Hassan",
+    "dob": "1990-08-14",
+    "sex": "M",
+    "zip": "77042",
+    "phone": "7135550168"
+   }
+  },
+  {
+   "id": "itin-then-ssn",
+   "title": "ITIN replaced by SSN",
+   "why": "Adjusted status: ITIN on the old record, SSN on the new one.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Reina",
+    "family_name": "Portillo",
+    "dob": "1987-02-02",
+    "sex": "F",
+    "zip": "77074",
+    "phone": "8325550179",
+    "ssn": "912784455"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Reina",
+    "family_name": "Portillo",
+    "dob": "1987-02-02",
+    "sex": "F",
+    "zip": "77074",
+    "phone": "8325550179",
+    "ssn": "640225871"
+   }
+  },
+  {
+   "id": "phone-changed-ssn-agrees",
+   "title": "New phone, same everything else",
+   "why": "Phone churn is ~8%/year.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Hector",
+    "family_name": "Salinas",
+    "dob": "1971-05-05",
+    "sex": "M",
+    "zip": "77015",
+    "phone": "7135550180",
+    "ssn": "455901276"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Hector",
+    "family_name": "Salinas",
+    "dob": "1971-05-05",
+    "sex": "M",
+    "zip": "77015",
+    "phone": "8325550191",
+    "ssn": "455901276"
+   }
+  },
+  {
+   "id": "sex-error",
+   "title": "Sex keyed wrong",
+   "why": "Everything else agrees.",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "id": "L1",
+    "given_name": "Jordan",
+    "family_name": "Mitchell",
+    "dob": "1995-03-18",
+    "sex": "F",
+    "zip": "77002",
+    "phone": "8325550192",
+    "ssn": "459002318"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Jordan",
+    "family_name": "Mitchell",
+    "dob": "1995-03-18",
+    "sex": "M",
+    "zip": "77002",
+    "phone": "8325550192",
+    "ssn": "459002318"
+   }
+  }
+ ]
+}

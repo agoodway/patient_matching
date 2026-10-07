@@ -1,0 +1,133 @@
+{
+ "category": "newborns & pediatrics",
+ "description": "Birth registrations and young children.",
+ "cases": [
+  {
+   "id": "newborn-renamed",
+   "title": "Newborn placeholder vs named child",
+   "why": "BABY GIRL SUAREZ at birth; EMMA SUAREZ at the pediatric visit. Same DOB, sex, phone, ZIP.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "Baby Girl",
+    "family_name": "Suarez",
+    "dob": "2024-01-18",
+    "sex": "F",
+    "zip": "77075",
+    "phone": "7135550150"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Emma",
+    "family_name": "Suarez",
+    "dob": "2024-01-18",
+    "sex": "F",
+    "zip": "77075",
+    "phone": "7135550150"
+   }
+  },
+  {
+   "id": "newborn-mother-surname",
+   "title": "Newborn under mother's surname, child under father's",
+   "why": "BB GARCIA SOTO at birth, FERNANDO VALDEZ later.",
+   "risk": "duplicate",
+   "expect": "match_or_review",
+   "left": {
+    "id": "L1",
+    "given_name": "BB",
+    "family_name": "Garcia Soto",
+    "dob": "2023-10-27",
+    "sex": "M",
+    "zip": "77055",
+    "phone": "2815550161"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Fernando",
+    "family_name": "Valdez",
+    "dob": "2023-10-27",
+    "sex": "M",
+    "zip": "77055",
+    "phone": "2815550161"
+   }
+  },
+  {
+   "id": "newborn-twins",
+   "title": "Newborn twins A and B",
+   "why": "BABY BOY A / BABY BOY B: same everything except the letter.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Baby Boy A",
+    "family_name": "Rojas",
+    "dob": "2025-03-18",
+    "sex": "M",
+    "zip": "77058",
+    "phone": "7135550172"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Baby Boy B",
+    "family_name": "Rojas",
+    "dob": "2025-03-18",
+    "sex": "M",
+    "zip": "77058",
+    "phone": "7135550172"
+   }
+  },
+  {
+   "id": "newborn-vs-mother",
+   "title": "Newborn vs mother",
+   "why": "Newborn shares mother's surname, phone, ZIP and sometimes SSN.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Baby Girl",
+    "family_name": "Morales",
+    "dob": "2025-07-02",
+    "sex": "F",
+    "zip": "77036",
+    "phone": "8325550183",
+    "ssn": "640117722"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Yesenia",
+    "family_name": "Morales",
+    "dob": "1997-02-11",
+    "sex": "F",
+    "zip": "77036",
+    "phone": "8325550183",
+    "ssn": "640117722"
+   }
+  },
+  {
+   "id": "newborn-siblings-different-years",
+   "title": "Two BABY GIRL records for siblings",
+   "why": "Same family, placeholder names, births two years apart.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Baby Girl",
+    "family_name": "Rojas",
+    "dob": "2019-03-18",
+    "sex": "F",
+    "zip": "77058",
+    "phone": "7135550172"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Baby Girl",
+    "family_name": "Rojas",
+    "dob": "2021-09-02",
+    "sex": "F",
+    "zip": "77058",
+    "phone": "7135550172"
+   }
+  }
+ ]
+}

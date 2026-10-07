@@ -1,0 +1,337 @@
+{
+ "category": "household false-positive traps",
+ "description": "Different people who share a household: surname, address, phone and sometimes SSN. Auto-merging any of these is an overlay — two patients' charts combined.",
+ "cases": [
+  {
+   "id": "twins-different-names",
+   "title": "Fraternal twins",
+   "why": "Same surname, DOB, ZIP, phone; different given names.",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Jayden",
+    "family_name": "Okafor",
+    "dob": "2015-04-09",
+    "sex": "M",
+    "zip": "77489",
+    "phone": "2815550103"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Jordan",
+    "family_name": "Okafor",
+    "dob": "2015-04-09",
+    "sex": "M",
+    "zip": "77489",
+    "phone": "2815550103"
+   }
+  },
+  {
+   "id": "twins-similar-names",
+   "title": "Twins with alliterative names",
+   "why": "JOSE LUIS / JOSE MANUEL: first given token identical.",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Jose Luis",
+    "family_name": "Hernandez",
+    "dob": "2009-11-02",
+    "sex": "M",
+    "zip": "77093",
+    "phone": "7135550114"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Jose Manuel",
+    "family_name": "Hernandez",
+    "dob": "2009-11-02",
+    "sex": "M",
+    "zip": "77093",
+    "phone": "7135550114"
+   }
+  },
+  {
+   "id": "twins-opposite-sex",
+   "title": "Boy/girl twins",
+   "why": "Different sex and given name.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Mia",
+    "family_name": "Patel",
+    "dob": "2018-06-30",
+    "sex": "F",
+    "zip": "77479",
+    "phone": "8325550125"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Aarav",
+    "family_name": "Patel",
+    "dob": "2018-06-30",
+    "sex": "M",
+    "zip": "77479",
+    "phone": "8325550125"
+   }
+  },
+  {
+   "id": "junior-senior",
+   "title": "Father and son, same name",
+   "why": "Same name, address and phone; DOBs 26 years apart.",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Calvin",
+    "family_name": "Smith",
+    "dob": "1958-02-11",
+    "sex": "M",
+    "zip": "77051",
+    "phone": "7135550113",
+    "ssn": "461330981"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Calvin",
+    "family_name": "Smith",
+    "dob": "1984-02-29",
+    "sex": "M",
+    "zip": "77051",
+    "phone": "7135550113"
+   }
+  },
+  {
+   "id": "junior-senior-missing-dob",
+   "title": "Father and son, one DOB missing",
+   "why": "The record that would distinguish them has no DOB.",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Calvin",
+    "family_name": "Smith",
+    "dob": "1958-02-11",
+    "sex": "M",
+    "zip": "77051",
+    "phone": "7135550113"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Calvin",
+    "family_name": "Smith",
+    "sex": "M",
+    "zip": "77051",
+    "phone": "7135550113"
+   }
+  },
+  {
+   "id": "mother-daughter-same-name",
+   "title": "Mother and daughter both MARIA",
+   "why": "Common in Hispanic families; share surname, address, phone.",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Maria",
+    "family_name": "Gonzalez",
+    "dob": "1966-08-15",
+    "sex": "F",
+    "zip": "77011",
+    "phone": "7135550136"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Maria",
+    "family_name": "Gonzalez",
+    "dob": "1992-08-03",
+    "sex": "F",
+    "zip": "77011",
+    "phone": "7135550136"
+   }
+  },
+  {
+   "id": "mother-daughter-same-year-month",
+   "title": "Same name, DOB in the same month 30 years apart",
+   "why": "same_year_month is evaluated on full dates, so this should not fire — the trap is phone + names.",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Maria",
+    "family_name": "Gonzalez",
+    "dob": "1966-08-15",
+    "sex": "F",
+    "zip": "77011",
+    "phone": "7135550136"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Maria",
+    "family_name": "Gonzalez",
+    "dob": "1996-08-15",
+    "sex": "F",
+    "zip": "77011",
+    "phone": "7135550136"
+   }
+  },
+  {
+   "id": "spouses-shared-phone",
+   "title": "Spouses sharing landline and address",
+   "why": "Different given names and sex; same surname.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Gerald",
+    "family_name": "Fontenot",
+    "dob": "1960-01-17",
+    "sex": "M",
+    "zip": "77536",
+    "phone": "2815550147",
+    "ssn": "455120938"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Brenda",
+    "family_name": "Fontenot",
+    "dob": "1962-09-29",
+    "sex": "F",
+    "zip": "77536",
+    "phone": "2815550147",
+    "ssn": "455331209"
+   }
+  },
+  {
+   "id": "parent-child-phone",
+   "title": "Child registered with parent's phone",
+   "why": "Phone exact is a strong weight; nothing else agrees.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Rosa",
+    "family_name": "Espinoza",
+    "dob": "1985-07-21",
+    "sex": "F",
+    "zip": "77015",
+    "phone": "3465550158"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Emma",
+    "family_name": "Espinoza",
+    "dob": "2023-07-26",
+    "sex": "F",
+    "zip": "77015",
+    "phone": "3465550158"
+   }
+  },
+  {
+   "id": "parent-child-phone-different-surname",
+   "title": "Child with parent's phone, different surname",
+   "why": "Only phone and ZIP agree.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Linsey",
+    "family_name": "Marinelarena",
+    "dob": "2001-03-04",
+    "sex": "F",
+    "zip": "77090",
+    "phone": "7135550169"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Leonardo",
+    "family_name": "Falls",
+    "dob": "2020-01-23",
+    "sex": "M",
+    "zip": "77090",
+    "phone": "7135550169"
+   }
+  },
+  {
+   "id": "child-guarantor-ssn",
+   "title": "Child record carries guarantor (parent) SSN",
+   "why": "Payer dependents often inherit the subscriber SSN.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Darius",
+    "family_name": "Johnson",
+    "dob": "1980-12-03",
+    "sex": "M",
+    "zip": "77045",
+    "phone": "7135550170",
+    "ssn": "461009823"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Darius",
+    "family_name": "Johnson Jr",
+    "dob": "2012-05-14",
+    "sex": "M",
+    "zip": "77045",
+    "phone": "7135550170",
+    "ssn": "461009823"
+   }
+  },
+  {
+   "id": "siblings",
+   "title": "Siblings",
+   "why": "Same surname, address, phone; different names and DOBs.",
+   "risk": "overlay",
+   "expect": "non_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Isabella",
+    "family_name": "Person",
+    "dob": "2016-10-09",
+    "sex": "F",
+    "zip": "77037",
+    "phone": "7135550181"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Abigail",
+    "family_name": "Person",
+    "dob": "2019-11-08",
+    "sex": "F",
+    "zip": "77037",
+    "phone": "7135550181"
+   }
+  },
+  {
+   "id": "borrowed-ssn",
+   "title": "Borrowed SSN",
+   "why": "An undocumented worker uses a relative's SSN; names and DOBs differ.",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "id": "L1",
+    "given_name": "Santos",
+    "family_name": "Reyes",
+    "dob": "1975-04-04",
+    "sex": "M",
+    "zip": "77060",
+    "phone": "2815550193",
+    "ssn": "631228190"
+   },
+   "right": {
+    "id": "R1",
+    "given_name": "Wilmer",
+    "family_name": "Reyes",
+    "dob": "1991-10-19",
+    "sex": "M",
+    "zip": "77038",
+    "phone": "8325550104",
+    "ssn": "631228190"
+   }
+  }
+ ]
+}

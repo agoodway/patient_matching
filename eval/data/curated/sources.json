@@ -1,0 +1,424 @@
+{
+ "_note": "Per-source data-quality profiles for synthetic records. Rates are per record; reach is the probability that a person has at least one MRN there.",
+ "sources": [
+  {
+   "id": "hospital_a",
+   "label": "Large private hospital system EHR",
+   "mrn_prefix": "HA",
+   "reach": {
+    "insured": 0.45,
+    "uninsured": 0.08
+   },
+   "duplicate_rate": 0.04,
+   "formats": {
+    "dob": {
+     "iso": 1.0
+    },
+    "phone": {
+     "dashed": 0.7,
+     "paren": 0.3
+    },
+    "sex": {
+     "word_mixed": 1.0
+    },
+    "ssn": {
+     "dashed": 1.0
+    },
+    "zip": {
+     "five": 0.8,
+     "plus4": 0.2
+    }
+   },
+   "capture": {
+    "ssn": 0.8,
+    "phone": 0.97,
+    "zip": 0.99,
+    "street": 0.99,
+    "sex": 0.995
+   },
+   "errors": {
+    "name_typo": 0.015,
+    "nickname": 0.0,
+    "variant": 0.01,
+    "middle_in_given": 0.03,
+    "goes_by_middle": 0.0,
+    "name_swap": 0.003,
+    "compound_surname_partial": 0.35,
+    "accents": 0.0,
+    "particle_join": 0.3,
+    "truncate_given": null,
+    "truncate_family": null,
+    "suffix_in_family": 0.5,
+    "dob_typo": 0.006,
+    "dob_day_month_swap": 0.003,
+    "dob_off_by_one_day": 0.003,
+    "dob_year_only": 0.0,
+    "dob_placeholder": 0.0,
+    "sex_error": 0.003,
+    "zip_typo": 0.004,
+    "phone_typo": 0.008,
+    "phone_placeholder": 0.003,
+    "phone_work": 0.02,
+    "ssn_typo": 0.004,
+    "ssn_placeholder": 0.01,
+    "ssn_guarantor_minor": 0.05,
+    "newborn_placeholder": 0.35,
+    "unknown_patient": 0.0015,
+    "household_phone": 0.15,
+    "stale_contact_years": 2
+   },
+   "notes": "Good-quality registration; newborns registered as BABY BOY/GIRL + mother's surname."
+  },
+  {
+   "id": "county_hospital",
+   "label": "Public safety-net hospital (county system), large ED",
+   "mrn_prefix": "CH",
+   "reach": {
+    "insured": 0.12,
+    "uninsured": 0.55
+   },
+   "duplicate_rate": 0.08,
+   "formats": {
+    "dob": {
+     "mdy": 0.85,
+     "mdy_nopad": 0.15
+    },
+    "phone": {
+     "digits": 0.5,
+     "dashed": 0.3,
+     "paren": 0.1,
+     "e164": 0.05,
+     "one_prefix": 0.05
+    },
+    "sex": {
+     "mf": 0.95,
+     "unknown_code": 0.05
+    },
+    "ssn": {
+     "digits": 0.8,
+     "dashed": 0.2
+    },
+    "zip": {
+     "five": 0.95,
+     "nine": 0.05
+    }
+   },
+   "capture": {
+    "ssn": 0.45,
+    "phone": 0.88,
+    "zip": 0.93,
+    "street": 0.9,
+    "sex": 0.97
+   },
+   "errors": {
+    "name_typo": 0.035,
+    "nickname": 0.0,
+    "variant": 0.03,
+    "middle_in_given": 0.03,
+    "goes_by_middle": 0.0,
+    "name_swap": 0.008,
+    "compound_surname_partial": 0.5,
+    "accents": 0.0,
+    "particle_join": 0.3,
+    "truncate_given": null,
+    "truncate_family": null,
+    "suffix_in_family": 0.5,
+    "dob_typo": 0.012,
+    "dob_day_month_swap": 0.008,
+    "dob_off_by_one_day": 0.003,
+    "dob_year_only": 0.01,
+    "dob_placeholder": 0.002,
+    "sex_error": 0.003,
+    "zip_typo": 0.004,
+    "phone_typo": 0.008,
+    "phone_placeholder": 0.01,
+    "phone_work": 0.02,
+    "ssn_typo": 0.004,
+    "ssn_placeholder": 0.04,
+    "ssn_guarantor_minor": 0.12,
+    "newborn_placeholder": 0.5,
+    "unknown_patient": 0.006,
+    "household_phone": 0.25,
+    "stale_contact_years": 4
+   },
+   "notes": "High volume, rushed ED registration, Spanish-speaking patients, placeholder SSNs, trauma aliases."
+  },
+  {
+   "id": "fqhc",
+   "label": "Community health center network",
+   "mrn_prefix": "FQ",
+   "reach": {
+    "insured": 0.08,
+    "uninsured": 0.5
+   },
+   "duplicate_rate": 0.05,
+   "formats": {
+    "dob": {
+     "mdy": 0.6,
+     "iso": 0.2,
+     "dmy": 0.05,
+     "mdy_dash": 0.15
+    },
+    "phone": {
+     "dashed": 0.6,
+     "paren": 0.2,
+     "digits": 0.2
+    },
+    "sex": {
+     "word": 0.9,
+     "mf": 0.1
+    },
+    "ssn": {
+     "dashed": 1.0
+    },
+    "zip": {
+     "five": 1.0
+    }
+   },
+   "capture": {
+    "ssn": 0.3,
+    "phone": 0.95,
+    "zip": 0.97,
+    "street": 0.95,
+    "sex": 0.99
+   },
+   "errors": {
+    "name_typo": 0.015,
+    "nickname": 0.06,
+    "variant": 0.01,
+    "middle_in_given": 0.06,
+    "goes_by_middle": 0.04,
+    "name_swap": 0.003,
+    "compound_surname_partial": 0.25,
+    "accents": 0.35,
+    "particle_join": 0.3,
+    "truncate_given": null,
+    "truncate_family": null,
+    "suffix_in_family": 0.5,
+    "dob_typo": 0.006,
+    "dob_day_month_swap": 0.006,
+    "dob_off_by_one_day": 0.003,
+    "dob_year_only": 0.0,
+    "dob_placeholder": 0.0,
+    "sex_error": 0.003,
+    "zip_typo": 0.004,
+    "phone_typo": 0.008,
+    "phone_placeholder": 0.003,
+    "phone_work": 0.02,
+    "ssn_typo": 0.004,
+    "ssn_placeholder": 0.03,
+    "ssn_guarantor_minor": 0.1,
+    "newborn_placeholder": 0.0,
+    "unknown_patient": 0.0,
+    "household_phone": 0.3,
+    "stale_contact_years": 3
+   },
+   "notes": "Preferred names recorded as given name; accents preserved; Spanish/Vietnamese front-desk staff."
+  },
+  {
+   "id": "reference_lab",
+   "label": "Commercial reference laboratory",
+   "mrn_prefix": "RL",
+   "reach": {
+    "insured": 0.35,
+    "uninsured": 0.2
+   },
+   "duplicate_rate": 0.1,
+   "formats": {
+    "dob": {
+     "mdy_nopad": 0.6,
+     "compact": 0.3,
+     "mdy": 0.1
+    },
+    "phone": {
+     "digits": 1.0
+    },
+    "sex": {
+     "mf": 0.6,
+     "unknown_code": 0.4
+    },
+    "ssn": {
+     "digits": 1.0
+    },
+    "zip": {
+     "five": 1.0
+    }
+   },
+   "capture": {
+    "ssn": 0.03,
+    "phone": 0.4,
+    "zip": 0.85,
+    "street": 0.6,
+    "sex": 0.75
+   },
+   "errors": {
+    "name_typo": 0.03,
+    "nickname": 0.0,
+    "variant": 0.01,
+    "middle_in_given": 0.15,
+    "goes_by_middle": 0.0,
+    "name_swap": 0.003,
+    "compound_surname_partial": 0.35,
+    "accents": 0.0,
+    "particle_join": 0.3,
+    "truncate_given": 10,
+    "truncate_family": 12,
+    "suffix_in_family": 0.8,
+    "dob_typo": 0.01,
+    "dob_day_month_swap": 0.003,
+    "dob_off_by_one_day": 0.003,
+    "dob_year_only": 0.0,
+    "dob_placeholder": 0.0,
+    "sex_error": 0.003,
+    "zip_typo": 0.004,
+    "phone_typo": 0.008,
+    "phone_placeholder": 0.003,
+    "phone_work": 0.02,
+    "ssn_typo": 0.004,
+    "ssn_placeholder": 0.01,
+    "ssn_guarantor_minor": 0.05,
+    "newborn_placeholder": 0.0,
+    "unknown_patient": 0.0,
+    "household_phone": 0.1,
+    "stale_contact_years": 5
+   },
+   "notes": "Demographics transcribed from requisition forms; fixed-width name fields; no SSN."
+  },
+  {
+   "id": "payer",
+   "label": "Health plan (Medicaid managed care + commercial) enrollment",
+   "mrn_prefix": "PY",
+   "reach": {
+    "insured": 0.8,
+    "uninsured": 0.0
+   },
+   "duplicate_rate": 0.02,
+   "formats": {
+    "dob": {
+     "compact": 0.5,
+     "iso": 0.5
+    },
+    "phone": {
+     "digits": 1.0
+    },
+    "sex": {
+     "mf": 1.0
+    },
+    "ssn": {
+     "digits": 1.0
+    },
+    "zip": {
+     "nine": 0.6,
+     "five": 0.4
+    }
+   },
+   "capture": {
+    "ssn": 0.95,
+    "phone": 0.75,
+    "zip": 1.0,
+    "street": 1.0,
+    "sex": 1.0
+   },
+   "errors": {
+    "name_typo": 0.005,
+    "nickname": 0.0,
+    "variant": 0.003,
+    "middle_in_given": 0.0,
+    "goes_by_middle": 0.0,
+    "name_swap": 0.003,
+    "compound_surname_partial": 0.15,
+    "accents": 0.0,
+    "particle_join": 0.3,
+    "truncate_given": null,
+    "truncate_family": null,
+    "suffix_in_family": 0.5,
+    "dob_typo": 0.002,
+    "dob_day_month_swap": 0.003,
+    "dob_off_by_one_day": 0.003,
+    "dob_year_only": 0.0,
+    "dob_placeholder": 0.0,
+    "sex_error": 0.003,
+    "zip_typo": 0.004,
+    "phone_typo": 0.008,
+    "phone_placeholder": 0.003,
+    "phone_work": 0.02,
+    "ssn_typo": 0.004,
+    "ssn_placeholder": 0.0,
+    "ssn_guarantor_minor": 0.25,
+    "newborn_placeholder": 0.0,
+    "unknown_patient": 0.0,
+    "household_phone": 0.2,
+    "stale_contact_years": 1
+   },
+   "notes": "Legal names from eligibility files; dependents often carry the subscriber's SSN."
+  },
+  {
+   "id": "pharmacy",
+   "label": "Retail pharmacy chain",
+   "mrn_prefix": "RX",
+   "reach": {
+    "insured": 0.55,
+    "uninsured": 0.3
+   },
+   "duplicate_rate": 0.06,
+   "formats": {
+    "dob": {
+     "mdy": 1.0
+    },
+    "phone": {
+     "paren": 0.5,
+     "dashed": 0.5
+    },
+    "sex": {
+     "mf": 0.7,
+     "unknown_code": 0.3
+    },
+    "ssn": {
+     "last4": 1.0
+    },
+    "zip": {
+     "five": 1.0
+    }
+   },
+   "capture": {
+    "ssn": 0.15,
+    "phone": 0.99,
+    "zip": 0.95,
+    "street": 0.95,
+    "sex": 0.7
+   },
+   "errors": {
+    "name_typo": 0.02,
+    "nickname": 0.1,
+    "variant": 0.02,
+    "middle_in_given": 0.0,
+    "goes_by_middle": 0.0,
+    "name_swap": 0.003,
+    "compound_surname_partial": 0.35,
+    "accents": 0.0,
+    "particle_join": 0.3,
+    "truncate_given": null,
+    "truncate_family": null,
+    "suffix_in_family": 0.5,
+    "dob_typo": 0.008,
+    "dob_day_month_swap": 0.003,
+    "dob_off_by_one_day": 0.003,
+    "dob_year_only": 0.0,
+    "dob_placeholder": 0.0,
+    "sex_error": 0.003,
+    "zip_typo": 0.004,
+    "phone_typo": 0.008,
+    "phone_placeholder": 0.003,
+    "phone_work": 0.02,
+    "ssn_typo": 0.004,
+    "ssn_placeholder": 0.01,
+    "ssn_guarantor_minor": 0.05,
+    "newborn_placeholder": 0.0,
+    "unknown_patient": 0.0,
+    "household_phone": 0.2,
+    "stale_contact_years": 3
+   },
+   "notes": "Nicknames common; SSN captured as last four only."
+  }
+ ]
+}
