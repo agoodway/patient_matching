@@ -115,4 +115,25 @@ defmodule PatientMatching.BlockingLinkingTest do
     refute log =~ "SSN-SECRET"
     refute log =~ "SSNSECRET"
   end
+
+  test "chunked parallel scoring returns the same pairs, in order, as scoring each pair" do
+    model = TestModels.fixed()
+    model = put_in(model.config.blocking, [[fn _ -> :all end]])
+    model = put_in(model.config.max_block_size, :infinity)
+    names = ["Smith", "Smyth", "Rare", "Other"]
+    records = for i <- 1..80, do: %{id: i, family_name: Enum.at(names, rem(i, 4))}
+
+    result = PatientMatching.dedupe(records, model, review_threshold: 0.0)
+    prepared = Map.new(Blocking.prepare(records), &{&1.id, &1})
+
+    expected =
+      for a <- 1..80, b <- (a + 1)..80//1 do
+        {a, b, Scorer.score(prepared[a], prepared[b], model).probability}
+      end
+
+    actual = Enum.map(result.matches ++ result.review, &{&1.left_id, &1.right_id, &1.probability})
+    assert length(expected) > 2_000
+    assert Enum.sort(actual) == Enum.sort(Enum.reject(expected, &(elem(&1, 2) == 0.0)))
+    assert Enum.map(result.review, &{&1.left_id, &1.right_id}) |> then(&(&1 == Enum.sort(&1)))
+  end
 end

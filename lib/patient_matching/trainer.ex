@@ -36,7 +36,7 @@ defmodule PatientMatching.Trainer do
         {estimate_lambda_prepared(records, config, length(prediction.pairs)), :deterministic}
       end
 
-    u = estimate_u(records, config)
+    u = estimate_u_prepared(records, config)
     m = initial_m(config, Keyword.get(opts, :m_init, %{}))
 
     parameters =
@@ -49,11 +49,11 @@ defmodule PatientMatching.Trainer do
       config: config,
       comparisons: config.comparisons,
       parameters: parameters,
-      term_frequencies: term_frequencies(records, config),
+      term_frequencies: term_frequencies_prepared(records, config),
       trained: %{lambda_source: source, unstable: false, em_iters: 0}
     }
 
-    estimate_m(pattern_counts(records, training.pairs, config), model, config)
+    estimate_m(pattern_counts_prepared(records, training.pairs, config), model, config)
   end
 
   @doc "Rough prior from deterministic agreements divided by prediction candidate count and recall; not a likelihood. Single-file training uses within-file pairs, even for a link_only config."
@@ -86,9 +86,11 @@ defmodule PatientMatching.Trainer do
   defp clamp_lambda(_), do: raise(ArgumentError, "lambda must be numeric")
 
   @doc "Uniform unordered pairs without replacement; a local RNG leaves caller state untouched."
-  def sample_pairs(records, config) do
-    records =
-      Blocking.prepare(records) |> Enum.sort_by(&Blocking.sort_key(&1.id)) |> List.to_tuple()
+  def sample_pairs(records, config),
+    do: records |> Blocking.prepare() |> sample_pairs_prepared(config)
+
+  defp sample_pairs_prepared(records, config) do
+    records = records |> Enum.sort_by(&Blocking.sort_key(&1.id)) |> List.to_tuple()
 
     n = tuple_size(records)
     total = div(n * (n - 1), 2)
@@ -115,10 +117,12 @@ defmodule PatientMatching.Trainer do
   end
 
   @doc "Estimates non-null level frequencies from unblocked random pairs and floors each field distribution."
-  def estimate_u(records, config) do
-    normalized = Blocking.prepare(records)
-    index = Map.new(normalized, &{&1.id, &1})
-    pairs = sample_pairs(records, config)
+  def estimate_u(records, config),
+    do: records |> Blocking.prepare() |> estimate_u_prepared(config)
+
+  defp estimate_u_prepared(records, config) do
+    index = Map.new(records, &{&1.id, &1})
+    pairs = sample_pairs_prepared(records, config)
 
     counts =
       Map.new(config.comparisons, fn comparison ->
@@ -134,8 +138,10 @@ defmodule PatientMatching.Trainer do
   end
 
   @doc "TF uses the whole training file as N; nil values do not receive a count."
-  def term_frequencies(records, config) do
-    records = Blocking.prepare(records)
+  def term_frequencies(records, config),
+    do: records |> Blocking.prepare() |> term_frequencies_prepared(config)
+
+  defp term_frequencies_prepared(records, config) do
     n = length(records)
 
     config.comparisons
@@ -153,8 +159,11 @@ defmodule PatientMatching.Trainer do
   end
 
   @doc "Aggregate ordered comparison-level tuples before running EM."
-  def pattern_counts(records, pairs, config) do
-    index = records |> Blocking.prepare() |> Map.new(&{&1.id, &1})
+  def pattern_counts(records, pairs, config),
+    do: records |> Blocking.prepare() |> pattern_counts_prepared(pairs, config)
+
+  defp pattern_counts_prepared(records, pairs, config) do
+    index = Map.new(records, &{&1.id, &1})
 
     Enum.reduce(pairs, %{}, fn {a, b}, counts ->
       pattern =

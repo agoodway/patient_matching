@@ -1,6 +1,7 @@
 defmodule PatientMatching.Linker do
   @moduledoc false
   alias PatientMatching.{Blocking, Config, Scorer}
+  @parallel_min 2_000
 
   @doc "Links two files, or deduplicates their union when requested, using model blocking and thresholds."
   def link(left, right, model, opts \\ []) do
@@ -36,40 +37,55 @@ defmodule PatientMatching.Linker do
     left = Map.new(left, &{&1.id, &1})
     right = Map.new(right, &{&1.id, &1})
 
-    result =
-      pairs
-      |> Task.async_stream(
-        fn {a, b} ->
-          scored = Scorer.score(Map.fetch!(left, a), Map.fetch!(right, b), model)
-
-          pair = %{
-            left_id: a,
-            right_id: b,
-            probability: scored.probability,
-            weight: scored.weight,
-            reason: scored.reason
-          }
-
-          {classify(scored.probability, match_threshold, review_threshold), pair}
-        end,
-        ordered: true,
-        timeout: :infinity
-      )
-      |> Enum.reduce(
-        %{matches: [], review: [], non_match_count: 0, dropped_blocks: blocked.dropped_blocks},
-        fn
-          {:ok, {:match, pair}}, result ->
-            %{result | matches: [pair | result.matches]}
-
-          {:ok, {:review, pair}}, result ->
-            %{result | review: [pair | result.review]}
-
-          {:ok, {:non_match, _}}, result ->
-            %{result | non_match_count: result.non_match_count + 1}
+    pairs
+    |> score_pairs(left, right, model)
+    |> Enum.reduce(
+      %{matches: [], review: [], non_match_count: 0, dropped_blocks: blocked.dropped_blocks},
+      fn pair, result ->
+        case classify(pair.probability, match_threshold, review_threshold) do
+          :match -> %{result | matches: [pair | result.matches]}
+          :review -> %{result | review: [pair | result.review]}
+          :non_match -> %{result | non_match_count: result.non_match_count + 1}
         end
-      )
+      end
+    )
+    |> then(&%{&1 | matches: Enum.reverse(&1.matches), review: Enum.reverse(&1.review)})
+  end
 
-    %{result | matches: Enum.reverse(result.matches), review: Enum.reverse(result.review)}
+  # Each chunk carries only the records its pairs reference, so a worker copies
+  # O(chunk) data instead of the whole file.
+  defp score_pairs(pairs, left, right, model) when length(pairs) < @parallel_min,
+    do: Enum.map(pairs, &score_pair(&1, left, right, model))
+
+  defp score_pairs(pairs, left, right, model) do
+    workers = System.schedulers_online()
+    size = max(div(length(pairs), workers * 4), 1)
+
+    pairs
+    |> Enum.chunk_every(size)
+    |> Enum.map(fn chunk ->
+      {chunk, Map.take(left, Enum.map(chunk, &elem(&1, 0))),
+       Map.take(right, Enum.map(chunk, &elem(&1, 1)))}
+    end)
+    |> Task.async_stream(
+      fn {chunk, l, r} -> Enum.map(chunk, &score_pair(&1, l, r, model)) end,
+      max_concurrency: workers,
+      ordered: true,
+      timeout: :infinity
+    )
+    |> Enum.flat_map(fn {:ok, scored} -> scored end)
+  end
+
+  defp score_pair({a, b}, left, right, model) do
+    scored = Scorer.score(Map.fetch!(left, a), Map.fetch!(right, b), model)
+
+    %{
+      left_id: a,
+      right_id: b,
+      probability: scored.probability,
+      weight: scored.weight,
+      reason: scored.reason
+    }
   end
 
   @doc "Classifies probabilities with inclusive match and non-match boundaries."
