@@ -11,7 +11,7 @@ defmodule PatientMatching.Trainer do
   """
   def train(records, config, opts \\ []) do
     config = Config.validate!(config)
-    records = Blocking.prepare(records, config.placeholders)
+    records = Blocking.prepare(records, config.placeholders, config.strip_mrn_leading_zeros)
     n = length(records)
     if n < 2, do: raise(ArgumentError, "training requires at least 2 records, got #{n}")
 
@@ -131,7 +131,7 @@ defmodule PatientMatching.Trainer do
   is also estimated from random pairs.
   """
   def estimate_lambda(records, config) do
-    records = Blocking.prepare(records, config.placeholders)
+    records = Blocking.prepare(records, config.placeholders, config.strip_mrn_leading_zeros)
     lambda_from(deterministic_pairs(records, config), length(records), config)
   end
 
@@ -156,7 +156,10 @@ defmodule PatientMatching.Trainer do
 
   @doc "Uniform unordered pairs without replacement; a local RNG leaves caller state untouched."
   def sample_pairs(records, config),
-    do: records |> Blocking.prepare(config.placeholders) |> sample_pairs_prepared(config)
+    do:
+      records
+      |> Blocking.prepare(config.placeholders, config.strip_mrn_leading_zeros)
+      |> sample_pairs_prepared(config)
 
   defp sample_pairs_prepared(records, config) do
     records = records |> Enum.sort_by(&Blocking.sort_key(&1.id)) |> List.to_tuple()
@@ -187,7 +190,7 @@ defmodule PatientMatching.Trainer do
 
   @doc "Estimates non-null level frequencies from unblocked random pairs and floors each field distribution."
   def estimate_u(records, config) do
-    records = Blocking.prepare(records, config.placeholders)
+    records = Blocking.prepare(records, config.placeholders, config.strip_mrn_leading_zeros)
     estimate_u_prepared(records, config, deterministic_pairs(records, config))
   end
 
@@ -215,28 +218,33 @@ defmodule PatientMatching.Trainer do
 
   @doc "TF uses the whole training file as N; nil values do not receive a count."
   def term_frequencies(records, config),
-    do: records |> Blocking.prepare(config.placeholders) |> term_frequencies_prepared(config)
+    do:
+      records
+      |> Blocking.prepare(config.placeholders, config.strip_mrn_leading_zeros)
+      |> term_frequencies_prepared(config)
 
   defp term_frequencies_prepared(records, config) do
     n = length(records)
 
-    config.comparisons
-    |> Enum.filter(fn c -> Enum.any?(c.levels, & &1.tf?) end)
-    |> Map.new(fn comparison ->
+    config
+    |> Config.frequency_fields()
+    |> Map.new(fn field ->
       frequencies =
         records
-        |> Enum.map(&Map.get(&1.normalized, comparison.field))
+        |> Enum.map(&Map.get(&1.normalized, field))
         |> Enum.reject(&is_nil/1)
         |> Enum.frequencies()
 
-      {comparison.field,
-       Map.new(frequencies, fn {value, count} -> {value, count / max(n, 1)} end)}
+      {field, Map.new(frequencies, fn {value, count} -> {value, count / max(n, 1)} end)}
     end)
   end
 
   @doc "Aggregate ordered comparison-level tuples before running EM."
   def pattern_counts(records, pairs, config),
-    do: records |> Blocking.prepare(config.placeholders) |> pattern_counts_prepared(pairs, config)
+    do:
+      records
+      |> Blocking.prepare(config.placeholders, config.strip_mrn_leading_zeros)
+      |> pattern_counts_prepared(pairs, config)
 
   # Chunks carry only the records their pairs reference (see Linker).
   defp pattern_counts_prepared(records, pairs, config) do

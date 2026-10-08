@@ -12,7 +12,7 @@ defmodule PatientMatching.Scorer do
   """
   def score(left, right, model, opts \\ []) do
     mrn = mrn?(left, right)
-    fired = Guards.fired(model.config.guards, left.normalized, right.normalized)
+    fired = Guards.fired_for_model(model, left.normalized, right.normalized)
 
     if mrn and fired == [] and not Keyword.get(opts, :explain, false) do
       %{probability: 1.0, weight: 50.0, levels: [], tf_adjustments: [], reason: :mrn, guards: []}

@@ -14,7 +14,8 @@ defmodule PatientMatching.Model do
   @doc "Serializes parameters, level names/flags, term frequencies and training status; functions are omitted."
   def dump(model) do
     Jason.encode!(%{
-      version: 2,
+      version: 3,
+      policies: policies(model.config),
       lambda: model.lambda,
       comparisons: signature(model.comparisons),
       parameters: model.parameters,
@@ -40,7 +41,7 @@ defmodule PatientMatching.Model do
       config: config,
       comparisons: config.comparisons,
       parameters: load_parameters(data["parameters"], config.comparisons),
-      term_frequencies: load_frequencies(data["term_frequencies"], config.comparisons),
+      term_frequencies: load_frequencies(data["term_frequencies"], config),
       trained: load_training(data["trained"])
     }
   rescue
@@ -60,10 +61,22 @@ defmodule PatientMatching.Model do
   end
 
   defp validate_header!(data, config) do
-    true = data["version"] == 2
+    case data["version"] do
+      2 -> true = config.strip_mrn_leading_zeros
+      3 -> true = data["policies"] == policies(config)
+      _ -> raise ArgumentError, "unsupported model version"
+    end
+
     true = data["comparisons"] == signature(config.comparisons)
     lambda = data["lambda"]
     true = is_number(lambda) and lambda >= 1.0e-9 and lambda <= 0.5
+  end
+
+  defp policies(config) do
+    %{
+      "strip_mrn_leading_zeros" => config.strip_mrn_leading_zeros,
+      "common_name_frequency" => config.common_name_frequency
+    }
   end
 
   defp load_parameters(raw, comparisons) do
@@ -98,13 +111,13 @@ defmodule PatientMatching.Model do
     %{m: m * 1.0, u: u * 1.0}
   end
 
-  defp load_frequencies(raw, comparisons) do
-    tf_comparisons = Enum.filter(comparisons, fn c -> Enum.any?(c.levels, & &1.tf?) end)
-    true = Enum.sort(Map.keys(raw)) == field_names(tf_comparisons)
+  defp load_frequencies(raw, config) do
+    fields = Config.frequency_fields(config)
+    true = Enum.sort(Map.keys(raw)) == Enum.sort(Enum.map(fields, &Atom.to_string/1))
 
-    Map.new(tf_comparisons, fn comparison ->
-      entries = Map.fetch!(raw, Atom.to_string(comparison.field))
-      {comparison.field, load_frequency_entries(entries)}
+    Map.new(fields, fn field ->
+      entries = Map.fetch!(raw, Atom.to_string(field))
+      {field, load_frequency_entries(entries)}
     end)
   end
 

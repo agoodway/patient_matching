@@ -47,7 +47,7 @@ defmodule PatientMatching.PostprocessingSerializationTest do
     json = PatientMatching.dump(model)
     assert is_binary(json)
     data = Jason.decode!(json)
-    assert data["version"] == 2
+    assert data["version"] == 3
     assert is_list(data["comparisons"])
     loaded = PatientMatching.load(json, config)
     assert loaded.comparisons == model.comparisons

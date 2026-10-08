@@ -6,8 +6,8 @@ defmodule PatientMatching.Explain do
   def explain(left, right, model),
     do:
       Scorer.score(
-        Normalize.record(left, model.config.placeholders),
-        Normalize.record(right, model.config.placeholders),
+        Normalize.record(left, model.config.placeholders, model.config.strip_mrn_leading_zeros),
+        Normalize.record(right, model.config.placeholders, model.config.strip_mrn_leading_zeros),
         model,
         explain: true
       )

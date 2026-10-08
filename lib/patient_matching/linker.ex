@@ -2,6 +2,7 @@ defmodule PatientMatching.Linker do
   @moduledoc false
   alias PatientMatching.{Blocking, Config, Scorer}
   @parallel_min 2_000
+  @identity_fields [:given_name, :family_name, :dob, :ssn, :ssn_partial, :phone, :zip, :street]
 
   @doc "Links two files, or deduplicates their union when requested, using model blocking and thresholds."
   def link(left, right, model, opts \\ []) do
@@ -12,14 +13,20 @@ defmodule PatientMatching.Linker do
     case type do
       :link_only ->
         score(
-          {Blocking.prepare(left, placeholders), Blocking.prepare(right, placeholders)},
+          {Blocking.prepare(left, placeholders, model.config.strip_mrn_leading_zeros),
+           Blocking.prepare(right, placeholders, model.config.strip_mrn_leading_zeros)},
           type,
           model,
           opts
         )
 
       :dedupe_only ->
-        score(Blocking.prepare(left ++ right, placeholders), type, model, opts)
+        score(
+          Blocking.prepare(left ++ right, placeholders, model.config.strip_mrn_leading_zeros),
+          type,
+          model,
+          opts
+        )
 
       _ ->
         raise ArgumentError, "invalid link_type"
@@ -46,13 +53,21 @@ defmodule PatientMatching.Linker do
         :dedupe_only -> {records, records}
       end
 
+    record_review = record_review(records, type)
     left = Map.new(left, &{&1.id, &1})
     right = Map.new(right, &{&1.id, &1})
 
     pairs
     |> score_pairs(left, right, model, match_threshold: match_threshold)
     |> Enum.reduce(
-      %{matches: [], review: [], non_match_count: 0, dropped_blocks: blocked.dropped_blocks},
+      %{
+        matches: [],
+        review: [],
+        record_review: record_review,
+        non_match_count: 0,
+        dropped_blocks: blocked.dropped_blocks,
+        dropped_blocks_by_rule: blocked.dropped_blocks_by_rule
+      },
       fn pair, result ->
         case classify(pair.probability, match_threshold, review_threshold) do
           :match -> %{result | matches: [pair | result.matches]}
@@ -62,6 +77,19 @@ defmodule PatientMatching.Linker do
       end
     )
     |> then(&%{&1 | matches: Enum.reverse(&1.matches), review: Enum.reverse(&1.review)})
+  end
+
+  defp record_review({left, right}, :link_only),
+    do: information_review(left, :left) ++ information_review(right, :right)
+
+  defp record_review(records, :dedupe_only), do: information_review(records, :single)
+
+  defp information_review(records, side) do
+    for record <- records,
+        n = record.normalized,
+        Enum.all?(@identity_fields, &(n[&1] == nil)),
+        n[:source] == nil or n[:mrn] == nil,
+        do: %{id: record.id, side: side, reason: :insufficient_identity}
   end
 
   # Each chunk carries only the records its pairs reference, so a worker copies

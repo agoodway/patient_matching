@@ -4,13 +4,17 @@ defmodule PatientMatching.Blocking do
   alias PatientMatching.{Comparators, Normalize}
 
   @doc "Normalizes a file and rejects records with missing or duplicate ids."
-  def prepare(records, placeholders \\ :default) when is_list(records) do
+  def prepare(records, placeholders \\ :default, strip_mrn_leading_zeros \\ true)
+      when is_list(records) do
     validate_ids!(records)
     workers = System.schedulers_online()
 
     records
     |> Enum.chunk_every(max(div(length(records), workers * 4), 500))
-    |> Task.async_stream(fn chunk -> Enum.map(chunk, &Normalize.record(&1, placeholders)) end,
+    |> Task.async_stream(
+      fn chunk ->
+        Enum.map(chunk, &Normalize.record(&1, placeholders, strip_mrn_leading_zeros))
+      end,
       max_concurrency: workers,
       timeout: :infinity
     )
@@ -33,17 +37,19 @@ defmodule PatientMatching.Blocking do
   def pairs(records, rules, link_type, opts \\ []),
     do: candidates(records, rules, link_type, opts).pairs
 
-  @doc "Returns blocked pairs and the number of blocks omitted for exceeding max_block_size. Accepts `:placeholders` for normalization."
+  @doc "Returns blocked pairs and total/per-rule oversized-block counts. Accepts `:placeholders` and `:strip_mrn_leading_zeros`."
   def candidates(records, rules, link_type, opts \\ []) do
     placeholders = Keyword.get(opts, :placeholders, :default)
+    strip_mrn_leading_zeros = Keyword.get(opts, :strip_mrn_leading_zeros, true)
 
     prepared =
       case {link_type, records} do
         {:dedupe_only, records} when is_list(records) ->
-          prepare(records, placeholders)
+          prepare(records, placeholders, strip_mrn_leading_zeros)
 
         {:link_only, {left, right}} ->
-          {prepare(left, placeholders), prepare(right, placeholders)}
+          {prepare(left, placeholders, strip_mrn_leading_zeros),
+           prepare(right, placeholders, strip_mrn_leading_zeros)}
 
         _ ->
           raise ArgumentError, "blocking expects a file for dedupe or {left, right} for linking"
@@ -57,18 +63,25 @@ defmodule PatientMatching.Blocking do
     maximum = Keyword.get(opts, :max_block_size, 500)
     oversized = Keyword.get(opts, :oversized, :drop)
 
-    {pairs, dropped} =
+    {pairs, dropped_by_rule} =
       rules
       |> Enum.with_index()
-      |> Enum.reduce({MapSet.new(), 0}, fn {rule, rule_index}, acc ->
-        records
-        |> block_index(rule, link_type)
-        |> Enum.reduce(acc, fn block, acc ->
-          emit_block(block, acc, rule_index, link_type, maximum, oversized)
-        end)
+      |> Enum.reduce({MapSet.new(), %{}}, fn {rule, rule_index}, {pairs, counts} ->
+        {pairs, dropped} =
+          records
+          |> block_index(rule, link_type)
+          |> Enum.reduce({pairs, 0}, fn block, acc ->
+            emit_block(block, acc, rule_index, link_type, maximum, oversized)
+          end)
+
+        {pairs, Map.put(counts, rule_index, dropped)}
       end)
 
-    %{pairs: sort_pairs(MapSet.to_list(pairs)), dropped_blocks: dropped}
+    %{
+      pairs: sort_pairs(MapSet.to_list(pairs)),
+      dropped_blocks: dropped_by_rule |> Map.values() |> Enum.sum(),
+      dropped_blocks_by_rule: dropped_by_rule
+    }
   end
 
   defp block_index(records, rule, :dedupe_only), do: index(records, rule, :single)
@@ -91,7 +104,7 @@ defmodule PatientMatching.Blocking do
 
     if maximum != :infinity and count > maximum do
       Logger.warning(
-        "patient_matching dropped block hash=#{:erlang.phash2({rule_index, key})} count=#{count}"
+        "patient_matching dropped block rule=#{rule_index} hash=#{:erlang.phash2({rule_index, key})} count=#{count}"
       )
 
       {pairs, dropped + 1}

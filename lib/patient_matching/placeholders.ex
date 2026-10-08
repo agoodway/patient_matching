@@ -24,6 +24,7 @@ defmodule PatientMatching.Placeholders do
 
   Structurally invalid identifiers are always missing, whatever the lists say:
   SSNs with area 000 or 666, group 00, serial 0000, or one repeated digit;
+  a last-four SSN fragment of 0000;
   phones whose last seven digits repeat one digit or are 555-1212.
   Newborn labels such as `BABY GIRL A` or `INFANT BOY` are always placeholders.
   """
@@ -71,6 +72,9 @@ defmodule PatientMatching.Placeholders do
     do: Regex.match?(@newborn, value) or listed?(lists, :given_name, value)
 
   def placeholder?(:ssn, value, lists), do: invalid_ssn?(value) or listed?(lists, :ssn, value)
+
+  def placeholder?(:ssn_partial, value, lists),
+    do: value == "0000" or listed?(lists, :ssn_partial, value)
 
   def placeholder?(:phone, value, lists),
     do: invalid_phone?(value) or listed?(lists, :phone, value)

@@ -101,10 +101,17 @@ defmodule PatientMatching do
   def train(records, config, opts \\ []), do: Trainer.train(records, config, opts)
 
   @doc """
-  Links two files and returns `matches`, `review`, `non_match_count`, and
-  `dropped_blocks`. Each returned pair has ids, probability, weight, reason
+  Links two files and returns `matches`, `review`, `record_review`, `non_match_count`, and
+  `dropped_blocks`, and `dropped_blocks_by_rule` (zero-based rule index => count).
+  Each returned pair has ids, probability, weight, reason
   and the guards that fired (see `PatientMatching.Guards`).
   Only candidates are counted as non-matches; unblocked pairs are unscored.
+
+  `record_review` flags records with no normalized name, DOB, SSN (full or
+  partial), contact, or source/MRN identifier. Entries contain `id`, `side`
+  (`:left`, `:right`, or `:single` for dedupe), and
+  `reason: :insufficient_identity`. These records need more information;
+  they are not proposed pairs and do not count as matches or pair reviews.
 
   Options override `:match_threshold` / `:review_threshold`. Match is >= the
   match threshold, non-match is <= the review threshold, and review lies
@@ -121,20 +128,25 @@ defmodule PatientMatching do
   Each cluster contains a stable smallest `root_id` and sorted `member_ids`.
   """
   def dedupe(records, model, opts \\ []) do
-    records = Blocking.prepare(records, model.config.placeholders)
+    records =
+      Blocking.prepare(records, model.config.placeholders, model.config.strip_mrn_leading_zeros)
+
     result = Linker.score(records, :dedupe_only, model, opts)
 
-    case model.config.guards do
-      [] ->
+    case {model.config.guards, model.config.common_name_frequency} do
+      {[], nil} ->
         result
         |> Map.put(:clusters, Cluster.clusters(result.matches))
         |> Map.put(:rejected_edges, [])
 
-      guards ->
+      _ ->
         index = Map.new(records, &{&1.id, &1.normalized})
 
         {clusters, rejected} =
-          Cluster.guarded(result.matches, &(Guards.check(guards, index[&1], index[&2]) != []))
+          Cluster.guarded(
+            result.matches,
+            &(Guards.fired_for_model(model, index[&1], index[&2]) != [])
+          )
 
         result |> Map.put(:clusters, clusters) |> Map.put(:rejected_edges, rejected)
     end

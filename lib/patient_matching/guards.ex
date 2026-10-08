@@ -21,13 +21,15 @@ defmodule PatientMatching.Guards do
   Conflicts (different people):
 
     * `:ssn_conflict` (10) - full SSNs more than one typo apart. An ITIN and
-      an SSN are not compared: people move from one to the other.
+      an SSN are not compared: people move from one to the other. Children
+      with the same full name, DOB and phone or street/ZIP are exempt because
+      a guarantor's SSN can appear on their records.
     * `:dob_conflict` (30) - birth years more than one apart, unless an
       adjacent-digit transposition (1969 / 1996) or a one-digit typo within
       a decade (1987 / 1983) explains it.
     * `:generation_suffix` (10) - different suffixes (JR / SR, II / III).
-    * `:twin` (10) - same birth date and family name, given names that are
-      not variants of each other. A shared full SSN between adults clears it.
+    * `:twin` (10) - children with the same birth date and family name, but
+      given names that are not variants of each other.
     * `:sex_and_given_name` (10) - recorded sexes and given names both differ.
     * `:birth_order` (30) - newborn labels with different birth orders
       (`BABY BOY A` / `BABY BOY B`).
@@ -37,6 +39,18 @@ defmodule PatientMatching.Guards do
 
   Too little to auto-match on (penalty 0, review only):
 
+    * `:adult_name_ambiguity` - adults with the same DOB and family name but
+      unrelated given names. An unfamiliar alias remains possible. A shared
+      full SSN clears this guard. A one-edit name typo also clears it when
+      both an SSN fragment and phone agree; household contact alone cannot
+      disambiguate two real names separated by an edit.
+    * `:newborn_identity` - both records use newborn labels without an
+      agreeing MRN from the same source. Household contact cannot identify
+      which baby a record belongs to.
+    * `:shared_ssn_conflict` - a full SSN agrees, but unrelated given names
+      and incompatible birth dates suggest a borrowed identifier.
+    * `:name_dob_ambiguity` - exact full names with incompatible birth dates
+      and no corroborating identifier or contact.
     * `:missing_dob` - a DOB is missing on either side and full SSNs do not
       agree. Father and son share name and address; only DOB separates them.
     * `:jan1_uncorroborated` - both birth dates are January 1, often an
@@ -44,7 +58,9 @@ defmodule PatientMatching.Guards do
       SSN (full or last four), phone, ZIP or street agrees.
 
   The `PatientMatching.Presets.patient_mpi/1` preset uses `default/0`. Pass
-  `guards: []` to disable them, or a modified list.
+  `guards: []` to disable them, or a modified list. The preset additionally
+  enables a model-frequency policy (`common_name_frequency`) for exact common
+  names and DOB without corroboration. Set it to nil to disable that policy.
   """
   alias PatientMatching.{Comparators, Normalize}
 
@@ -54,7 +70,11 @@ defmodule PatientMatching.Guards do
       {:ssn_conflict, &ssn_conflict?/2, 10.0},
       {:dob_conflict, &dob_conflict?/2, 30.0},
       {:generation_suffix, &generation_suffix?/2, 10.0},
-      {:twin, &twin?/2, 10.0},
+      {:twin, &child_twin?/2, 10.0},
+      {:adult_name_ambiguity, &adult_name_ambiguity?/2, 0.0},
+      {:newborn_identity, &newborn_identity?/2, 0.0},
+      {:shared_ssn_conflict, &shared_ssn_conflict?/2, 0.0},
+      {:name_dob_ambiguity, &name_dob_ambiguity?/2, 0.0},
       {:sex_and_given_name, &sex_and_given_name?/2, 10.0},
       {:birth_order, &birth_order?/2, 30.0},
       {:newborn_dob, &newborn_dob?/2, 10.0},
@@ -68,6 +88,29 @@ defmodule PatientMatching.Guards do
 
   def fired(guards, a, b),
     do: for({reason, fun, penalty} <- guards, fun.(a, b), do: {reason, penalty})
+
+  @doc "Configured guards plus the model-frequency policy for uncorroborated common names."
+  def fired_for_model(model, a, b) do
+    fired = fired(model.config.guards, a, b)
+
+    if common_name_uncorroborated?(model, a, b),
+      do: fired ++ [{:common_name_uncorroborated, 0.0}],
+      else: fired
+  end
+
+  defp common_name_uncorroborated?(model, a, b) do
+    minimum = model.config.common_name_frequency
+
+    same_mrn? =
+      Comparators.exact?(a[:source], b[:source]) and Comparators.exact?(a[:mrn], b[:mrn])
+
+    minimum != nil and not same_mrn? and Comparators.exact?(a[:dob], b[:dob]) and
+      uncorroborated?(a, b) and
+      Enum.all?([:given_name, :family_name], fn field ->
+        Comparators.exact?(a[field], b[field]) and
+          model.term_frequencies |> Map.get(field, %{}) |> Map.get(a[field], 0.0) >= minimum
+      end)
+  end
 
   @doc "Reasons of the guards that fire for two normalized records."
   def check(guards, a, b), do: guards |> fired(a, b) |> Enum.map(&elem(&1, 0))
@@ -89,13 +132,37 @@ defmodule PatientMatching.Guards do
 
   defp valid?(_), do: false
 
-  @doc "Both full SSNs (or both ITINs) present and more than one typo apart."
+  @doc "Conflicting full SSNs/ITINs, except corroborated child records that may use a guarantor's SSN."
   def ssn_conflict?(a, b) do
     s1 = a[:ssn]
     s2 = b[:ssn]
 
     s1 != nil and s2 != nil and s1 != s2 and itin?(s1) == itin?(s2) and
-      not Comparators.one_edit?(s1, s2)
+      not Comparators.one_edit?(s1, s2) and not child_guarantor?(a, b)
+  end
+
+  defp child_guarantor?(a, b) do
+    a[:dob] != nil and a[:dob] == b[:dob] and not adult?(a[:dob]) and
+      Comparators.exact?(a[:given_name], b[:given_name]) and
+      Comparators.exact?(a[:family_name], b[:family_name]) and
+      (Comparators.exact?(a[:phone], b[:phone]) or
+         (Comparators.exact?(a[:street], b[:street]) and Comparators.exact?(a[:zip], b[:zip])))
+  end
+
+  defp given_typo?(a, b) when is_binary(a) and is_binary(b) do
+    {short, long} = if byte_size(a) <= byte_size(b), do: {a, b}, else: {b, a}
+
+    byte_size(short) >= 2 and
+      (Comparators.one_edit?(short, long) or single_deletion?(short, long))
+  end
+
+  defp given_typo?(_, _), do: false
+
+  defp single_deletion?(short, long) do
+    byte_size(long) == byte_size(short) + 1 and
+      Enum.any?(0..(byte_size(long) - 1), fn i ->
+        binary_part(long, 0, i) <> binary_part(long, i + 1, byte_size(long) - i - 1) == short
+      end)
   end
 
   @doc "Birth years more than one apart and not explained by a typo."
@@ -121,6 +188,45 @@ defmodule PatientMatching.Guards do
       different_given?(a[:given_name], b[:given_name]) and
       not (Comparators.exact?(a[:ssn], b[:ssn]) and adult?(a[:dob]))
   end
+
+  @doc "Children with differing given names and the same birth date may be twins."
+  def child_twin?(a, b), do: twin?(a, b) and not adult?(a[:dob])
+
+  @doc "Adult name differences with the same surname and DOB require review; aliases remain possible."
+  def adult_name_ambiguity?(a, b),
+    do: twin?(a, b) and adult?(a[:dob]) and not corroborated_name_typo?(a, b)
+
+  defp corroborated_name_typo?(a, b) do
+    given_typo?(a[:given_name], b[:given_name]) and
+      Comparators.exact?(last4(a), last4(b)) and Comparators.exact?(a[:phone], b[:phone])
+  end
+
+  @doc "Two unnamed newborns need a baby-specific source/MRN before auto-merging; household contact is insufficient."
+  def newborn_identity?(a, b),
+    do: a[:newborn] == true and b[:newborn] == true and not same_mrn?(a, b)
+
+  @doc "A shared full SSN with unrelated names and incompatible DOBs can be borrowed."
+  def shared_ssn_conflict?(a, b) do
+    Comparators.exact?(a[:ssn], b[:ssn]) and different_given?(a[:given_name], b[:given_name]) and
+      incompatible_dob?(a, b)
+  end
+
+  @doc "Exact names with incompatible dates need corroboration beyond names and DOB."
+  def name_dob_ambiguity?(a, b) do
+    Comparators.exact?(a[:given_name], b[:given_name]) and
+      Comparators.exact?(a[:family_name], b[:family_name]) and
+      incompatible_dob?(a, b) and uncorroborated?(a, b) and not same_mrn?(a, b)
+  end
+
+  defp incompatible_dob?(a, b) do
+    a[:dob] != nil and b[:dob] != nil and a[:dob] != b[:dob] and
+      not Comparators.dob_one_edit?(a[:dob], b[:dob]) and
+      not Comparators.month_day_swapped?(a[:dob], b[:dob]) and
+      not Comparators.within_days?(a[:dob], b[:dob], 1)
+  end
+
+  defp same_mrn?(a, b),
+    do: Comparators.exact?(a[:source], b[:source]) and Comparators.exact?(a[:mrn], b[:mrn])
 
   @doc "Recorded sexes differ and so do given names."
   def sex_and_given_name?(a, b) do
@@ -183,6 +289,8 @@ defmodule PatientMatching.Guards do
 
   defp itin?(<<"9", _::binary>>), do: true
   defp itin?(_), do: false
+
+  defp adult?(nil), do: false
 
   defp adult?(%{year: y, month: m, day: d}) do
     today = Normalize.today()

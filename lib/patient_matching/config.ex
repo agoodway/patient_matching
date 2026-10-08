@@ -16,6 +16,8 @@ defmodule PatientMatching.Config do
             max_block_size: 500,
             training_block_size: 200,
             placeholders: :default,
+            strip_mrn_leading_zeros: true,
+            common_name_frequency: nil,
             guards: []
 
   @doc "Builds a config from keywords, applying defaults and validating all options."
@@ -24,6 +26,19 @@ defmodule PatientMatching.Config do
   rescue
     e in KeyError ->
       reraise ArgumentError, [message: "unknown config option #{inspect(e.key)}"], __STACKTRACE__
+  end
+
+  @doc "Fields requiring frequencies for TF scoring or the common-name policy."
+  def frequency_fields(config) do
+    fields =
+      config.comparisons
+      |> Enum.filter(fn c -> Enum.any?(c.levels, & &1.tf?) end)
+      |> Enum.map(& &1.field)
+
+    policy_fields =
+      if config.common_name_frequency == nil, do: [], else: [:given_name, :family_name]
+
+    Enum.uniq(fields ++ policy_fields)
   end
 
   @doc "Validates comparison fields, blocking rules, thresholds, and estimation settings."
@@ -38,6 +53,14 @@ defmodule PatientMatching.Config do
     Enum.each([config.blocking, config.training_blocking], &validate_blocking!/1)
     Placeholders.validate!(config.placeholders)
     Guards.validate!(config.guards)
+
+    unless is_boolean(config.strip_mrn_leading_zeros),
+      do: raise(ArgumentError, "strip_mrn_leading_zeros must be a boolean")
+
+    unless config.common_name_frequency == nil or
+             (is_number(config.common_name_frequency) and config.common_name_frequency > 0 and
+                config.common_name_frequency <= 1),
+           do: raise(ArgumentError, "common_name_frequency must be nil or in (0, 1]")
 
     config
   end

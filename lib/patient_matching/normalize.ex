@@ -38,9 +38,9 @@ defmodule PatientMatching.Normalize do
   Adds a normalized copy of patient fields, retaining the original map values.
   Placeholder values (see `PatientMatching.Placeholders`) become nil.
   """
-  def record(record, placeholders \\ :default)
+  def record(record, placeholders \\ :default, strip_mrn_leading_zeros \\ true)
 
-  def record(record, placeholders) when is_map(record) do
+  def record(record, placeholders, strip_mrn_leading_zeros) when is_map(record) do
     lists = if is_map(placeholders), do: placeholders, else: Placeholders.default()
     {given, given_suffix} = name(Map.get(record, :given_name), :given)
     {family, family_suffix} = name(Map.get(record, :family_name))
@@ -51,7 +51,7 @@ defmodule PatientMatching.Normalize do
     normalized =
       %{
         source: string(Map.get(record, :source)),
-        mrn: mrn(Map.get(record, :mrn)),
+        mrn: mrn(Map.get(record, :mrn), strip_mrn_leading_zeros),
         ssn: ssn,
         ssn_partial: ssn_partial,
         given_name: if(alias?, do: nil, else: given),
@@ -190,8 +190,8 @@ defmodule PatientMatching.Normalize do
     end
   end
 
-  @doc "Alphanumeric MRN with leading zeros after any letter prefix removed (`HA000123` equals `HA123`)."
-  def mrn(value) do
+  @doc "Alphanumeric MRN; strips leading zeros after letter prefixes by default, or preserves them when false."
+  def mrn(value, strip_leading_zeros \\ true) do
     case string(value) do
       nil ->
         nil
@@ -199,7 +199,12 @@ defmodule PatientMatching.Normalize do
       text ->
         compact = String.replace(text, " ", "")
 
-        case Regex.replace(~r/^(\p{L}*)0+(?=[0-9A-Z])/u, compact, "\\1") do
+        normalized =
+          if strip_leading_zeros,
+            do: Regex.replace(~r/^(\p{L}*)0+(?=[0-9A-Z])/u, compact, "\\1"),
+            else: compact
+
+        case normalized do
           "" -> nil
           mrn -> mrn
         end

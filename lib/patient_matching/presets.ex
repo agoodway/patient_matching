@@ -19,7 +19,9 @@ defmodule PatientMatching.Presets do
   ZIP, phone and street (household members share all three, so they are
   scored together rather than as independent evidence), and SSN (full or
   last four). Guards from `PatientMatching.Guards.default/0` stop family
-  members with contradicting identifiers from auto-matching.
+  members with contradicting identifiers from auto-matching. Exact full name
+  and DOB without corroboration also require review when both names occur in
+  at least 0.4% of training rows (`common_name_frequency: 0.004`; nil disables).
   """
   def patient_mpi(overrides \\ []) do
     comparisons = [
@@ -73,7 +75,8 @@ defmodule PatientMatching.Presets do
         [:given_soundex, :family_soundex]
       ],
       training_blocking: [[:dob_year], [:family_soundex, :given_name3]],
-      guards: Guards.default()
+      guards: Guards.default(),
+      common_name_frequency: 0.004
     ]
 
     Config.new(Keyword.merge(defaults, overrides))
