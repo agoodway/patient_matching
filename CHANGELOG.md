@@ -27,6 +27,18 @@ golden expectations and nickname mappings are unchanged. Records with no usable
 identity now appear in a separate `record_review` information-gathering queue;
 that queue does not count as finding a matching pair.
 
+Generator v3 fixes street variants that rewrote words inside street names
+(`HIGH STAR DR` became `HIGH STREETAR DRIVE`); only those street values
+change (62 default records, 708 in the primary benchmark). On the regenerated
+data, a new `:sibling` guard and USPS street normalization take the 50k
+primary benchmark from 1,312 to 329 enterprise false matches (98.775% to
+99.691% precision), auto-match recall from 96.910% to 97.169%, review from
+6,960 to 4,457 pairs and overlay clusters from 116 to 54. The guard alone
+gives 300 false matches at unchanged recall; street normalization adds
+283 true auto-matches and 29 false matches on top of it. Golden scenarios
+(83/83), challenge outcomes and acceptance budgets are unchanged; the
+baseline was refreshed for the new dataset hashes.
+
 ### Breaking
 
 - **Prior.** `lambda` is now the probability that two random records match

@@ -1,5 +1,5 @@
 {
-  "generator_version": "2",
+  "generator_version": "3",
   "households": 1429,
   "input_hashes": {
     "eval/data/curated/accents.csv": "8a2be871a64f844eeb870516832d882c98a8022a45d82921628eb208c8a8cb4e",
@@ -16,7 +16,7 @@
   },
   "output_hashes": {
     "people.jsonl": "6014756f15e0914346cba7862130a6f895ba9130fe8df4a7ed41216d3320c0fc",
-    "records.jsonl": "4caab16273bb05b50a3717b945dcd75e8b810b95bf5a1a2e4dc6695847a65198",
+    "records.jsonl": "3d9b61f027c99179838b55f7560d59a60d19571509cdc77034bfd383fd666a08",
     "truth.jsonl": "b427c9b4c8a9535fe8bd4027c1fb6d6dcafcd4ecb9ec195ce2d3fdc3cadfa507"
   },
   "parameters": {

@@ -4,41 +4,41 @@
       "precision": 1.0,
       "blocking_recall": 0.9895833333333334,
       "recall": 0.8958333333333334,
-      "recall_with_review": 0.9583333333333334,
+      "recall_with_review": 0.9895833333333334,
       "false_matches": 0,
-      "review": 7
+      "review": 10
     },
     "county_hospital_x_fqhc": {
       "precision": 1.0,
       "blocking_recall": 1.0,
       "recall": 0.9380165289256198,
-      "recall_with_review": 0.9917355371900827,
+      "recall_with_review": 1.0,
       "false_matches": 0,
-      "review": 14
+      "review": 15
     },
     "enterprise_mpi": {
-      "precision": 0.9972806810120596,
+      "precision": 0.9971714790807307,
       "blocking_recall": 0.9976987688413301,
-      "recall": 0.9705442411690254,
+      "recall": 0.9735358416752963,
       "recall_with_review": 0.9939017374295248,
-      "false_matches": 23,
-      "review": 439
+      "false_matches": 24,
+      "review": 222
     },
     "enterprise_mpi_oracle_lambda": {
-      "precision": 0.997278750591576,
+      "precision": 0.997168475696083,
       "blocking_recall": 0.9976987688413301,
-      "recall": 0.9698538718214245,
+      "recall": 0.9725002876538948,
       "recall_with_review": 0.9937866758715913,
-      "false_matches": 23,
-      "review": 441
+      "false_matches": 24,
+      "review": 230
     },
     "hospital_a_x_county_hospital": {
       "precision": 1.0,
       "blocking_recall": 1.0,
-      "recall": 0.9642857142857143,
+      "recall": 0.9678571428571429,
       "recall_with_review": 1.0,
       "false_matches": 0,
-      "review": 18
+      "review": 10
     },
     "pharmacy_x_payer": {
       "precision": 1.0,
@@ -46,15 +46,15 @@
       "recall": 0.9904264577893821,
       "recall_with_review": 0.999129677980853,
       "false_matches": 0,
-      "review": 45
+      "review": 14
     },
     "reference_lab_x_hospital_a": {
       "precision": 1.0,
       "blocking_recall": 0.9972602739726028,
-      "recall": 0.958904109589041,
+      "recall": 0.963013698630137,
       "recall_with_review": 0.9876712328767123,
       "false_matches": 0,
-      "review": 27
+      "review": 20
     }
   },
   "golden": {
@@ -144,8 +144,8 @@
   },
   "dataset_hashes": {
     "people.jsonl": "6014756f15e0914346cba7862130a6f895ba9130fe8df4a7ed41216d3320c0fc",
-    "records.jsonl": "4caab16273bb05b50a3717b945dcd75e8b810b95bf5a1a2e4dc6695847a65198",
+    "records.jsonl": "3d9b61f027c99179838b55f7560d59a60d19571509cdc77034bfd383fd666a08",
     "truth.jsonl": "b427c9b4c8a9535fe8bd4027c1fb6d6dcafcd4ecb9ec195ce2d3fdc3cadfa507"
   },
-  "saved_at": "2026-10-08T11:15:51Z"
+  "saved_at": "2026-10-08T12:41:11Z"
 }

@@ -10,7 +10,7 @@ defmodule PatientMatchingEval.Generation do
     Validation
   }
 
-  @version "2"
+  @version "3"
   @files ~w(records.jsonl truth.jsonl people.jsonl)
 
   @doc "Generates, structurally validates, then persists one population."

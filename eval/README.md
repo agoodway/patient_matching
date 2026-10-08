@@ -157,6 +157,37 @@ See `eval/results/fixes-benchmark-final.json` for individual population metrics,
 minimum/maximum summaries, challenge outcomes, information-review details and
 dataset/training hashes. Generated reports are intentionally ignored by Git.
 
+## Generator v3: street normalization and sibling guard
+
+Generator v3 fixes `street_variant`, which replaced ` ST`, ` RD` and ` DR`
+inside words (`HIGH STAR DR` became `HIGH STREETAR DRIVE`). Only street values
+change: 62 default records and 708 primary benchmark records. The sections
+above describe generator-v2 data.
+
+On v3 data, the matcher before this change reproduces its v2 results exactly.
+Enterprise dedupe, primary benchmark:
+
+| matcher | precision | auto recall | recall + review | false matches | review | overlay clusters |
+|---|---:|---:|---:|---:|---:|---:|
+| before | 98.775% | 96.910% | 99.121% | 1,312 | 6,960 | 116 |
+| `:sibling` guard only | 99.717% | 96.910% | 99.118% | 300 | 4,646 | 52 |
+| street normalization only | 98.645% | 97.170% | 99.189% | 1,457 | 7,105 | 122 |
+| both (current) | 99.691% | 97.169% | 99.187% | 329 | 4,457 | 54 |
+
+Before the guard, 962 of the 1,312 false matches were siblings with the same
+surname, phone and address, unrelated given names and birth dates less than
+two years apart, which `:dob_conflict` does not cover. The guard fires on
+149,536 different-person and 3 same-person scored pairs in primary.
+Street normalization alone is a poor trade: agreeing household addresses
+shift the EM estimates and add sibling false matches. With the guard, it
+adds 283 true auto-matches and 29 false matches. Holdouts: 2027 has 68 false
+matches (from 167) and 2028 has 97 (from 116). The default population gives
+99.717% precision, 97.354% recall, 99.390% with review, 24 false matches and
+222 review pairs. Golden scenarios pass 83/83 on every population; challenge
+outcomes are unchanged. `building_and_zip` never fires on generated data,
+which never drops a unit. Address variants are the ones the normalizer
+reverses, so its benefit here is optimistic.
+
 ## What it measures
 
 `suite.json` defines inclusive `min` / `max` acceptance limits under each run's

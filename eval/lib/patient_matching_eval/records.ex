@@ -527,14 +527,17 @@ defmodule PatientMatchingEval.Records do
     end
   end
 
+  @suffix_words %{"ST" => "STREET", "RD" => "ROAD", "DR" => "DRIVE"}
+
   defp street_variant(street) do
     if Rng.chance?(0.3),
       do:
         street
         |> String.replace(" APT ", " # ")
-        |> String.replace(" RD", " ROAD")
-        |> String.replace(" ST", " STREET")
-        |> String.replace(" DR", " DRIVE"),
+        # Whole words only: HIGH STAR DR must not become HIGH STREETAR DRIVE.
+        |> then(
+          &Regex.replace(~r/ (ST|RD|DR)\b/, &1, fn _, word -> " " <> @suffix_words[word] end)
+        ),
       else: street
   end
 
