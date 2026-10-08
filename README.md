@@ -66,6 +66,15 @@ normalized copy under `:normalized`:
   future are nil.
 - **Phone:** digits, without a leading US `1` or an extension.
 - **ZIP:** first five digits; a 4- or 8-digit value gets back its lost leading zero.
+- **Street:** USPS Publication 28 standard form by word position. The suffix
+  and the directionals around the name are abbreviated (`123 NORTH MAIN
+  STREET` = `123 N MAIN ST`); words inside the name are kept (`RIDGE AVENUE`
+  is `RIDGE AVE`, and `EAST ST` stays apart from `E ST`). Every unit
+  designator becomes one `UNIT` marker after the street (`APT 4` = `#4` =
+  `SUITE 4` = `4TH FLOOR`, and `APT 1B 626 E KILBOURN AVE` moves its unit to
+  the end). Box lines read `PO BOX`, `RR` or `HC`. Tested against the
+  labeled usaddress addresses in `test/fixtures/usaddress`; addresses are not
+  validated.
 - **SSN:** nine digits; a four-digit value is kept as `:ssn_partial` for
   last-four comparison and blocking.
 - **MRN:** alphanumeric, leading zeros after any letter prefix ignored by default.
@@ -147,7 +156,8 @@ The preset (`PatientMatching.Presets.patient_mpi/1`) compares:
 - DOB: exact (TF), month/day swapped, within one day, one-digit typo, same year/month
 - sex: exact
 - contact, over ZIP, phone and street together: phone and ZIP, phone, street
-  and ZIP, ZIP, ZIP3 or last seven phone digits. Household members share all
+  and ZIP, building and ZIP (same street, unit on only one side), ZIP, ZIP3 or
+  last seven phone digits. Household members share all
   three, so they are scored jointly rather than as independent evidence.
 - SSN, over full and last-four-only values: exact, one typo, last four
 

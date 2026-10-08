@@ -1,6 +1,6 @@
 defmodule PatientMatching.Normalize do
   @moduledoc false
-  alias PatientMatching.Placeholders
+  alias PatientMatching.{Placeholders, Street}
 
   @fields [:source, :mrn, :ssn, :given_name, :family_name, :dob, :sex, :zip, :phone, :street]
   @suffixes %{
@@ -63,7 +63,7 @@ defmodule PatientMatching.Normalize do
         sex: value(:sex, Map.get(record, :sex)),
         zip: value(:zip, Map.get(record, :zip)),
         phone: value(:phone, Map.get(record, :phone)),
-        street: string(Map.get(record, :street))
+        street: street(Map.get(record, :street))
       }
       |> Map.new(fn {field, value} ->
         {field, if(Placeholders.placeholder?(field, value, lists), do: nil, else: value)}
@@ -118,7 +118,20 @@ defmodule PatientMatching.Normalize do
     end
   end
 
+  def value(:street, value), do: street(value)
   def value(_, value), do: string(value)
+
+  @doc """
+  Street line in USPS Publication 28 standard form: suffixes and directionals
+  abbreviated by position (`123 NORTH MAIN STREET` = `123 N MAIN ST`, while
+  `RIDGE AVE` keeps its name), one `UNIT` marker after the street for every
+  unit designator (`APT 4`, `#4` and `4TH FLOOR` are `UNIT 4`), and `PO BOX`,
+  `RR` and `HC` box lines. The address is not validated.
+  """
+  defdelegate street(value), to: Street, as: :normalize
+
+  @doc ~S|Splits a normalized street at its unit marker: `{"12 OAK ST", "4"}`; the unit is nil when absent.|
+  defdelegate street_unit(street), to: Street, as: :unit
 
   @doc "Folds accents, uppercases, drops apostrophes, turns other punctuation into spaces and collapses whitespace; empty text becomes nil."
   def string(value) do

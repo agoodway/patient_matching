@@ -452,6 +452,7 @@ defmodule PatientMatching.Trainer do
     :one_digit,
     :phone,
     :street_and_zip,
+    :building_and_zip,
     :zip,
     :near
   ]

@@ -54,6 +54,7 @@ defmodule PatientMatching.Presets do
         level(:phone_and_zip, &Comparators.phone_and_zip?/2),
         level(:phone, &Comparators.same_phone?/2),
         level(:street_and_zip, &Comparators.street_and_zip?/2),
+        level(:building_and_zip, &Comparators.building_and_zip?/2),
         level(:zip, &Comparators.same_zip?/2),
         level(:near, &Comparators.contact_near?/2)
       ]),

@@ -46,6 +46,11 @@ that queue does not count as finding a matching pair.
   - Phone drops a leading `1` and extensions.
   - MRN leading zeros are ignored by default; `strip_mrn_leading_zeros: false`
     preserves them consistently during training, blocking and scoring.
+  - Streets use USPS Publication 28 standard form by word position:
+    suffix and directionals abbreviated, name words kept, one `UNIT` marker
+    after the street for every unit designator, and `PO BOX`, `RR` or `HC`
+    box lines. Tests run against 9,035 labeled addresses from
+    datamade/usaddress (MIT, `test/fixtures/usaddress`).
 - **Preset.**
   - New comparisons and levels: `contact` (ZIP, phone and street together)
     replaces `zip` and `phone`; `name_order` is new; and the name, DOB and SSN
@@ -54,6 +59,8 @@ that queue does not count as finding a matching pair.
     `[:given_soundex, :family_soundex]`), and training blocking
     `[[:dob_year], [:family_soundex, :given_name3]]`.
   - Guards are on.
+  - The `contact` comparison gains `building_and_zip` (same street and ZIP,
+    unit on one side only), so models saved before it must be retrained.
 - **Results.** Pairs carry `:guards`. `dedupe/3` also returns `rejected_edges`.
   A same-source MRN agreement is overridden by a guard (reason `:mrn_conflict`).
 - **Model dumps** are version 3, recording MRN normalization and the common-name

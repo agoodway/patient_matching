@@ -204,6 +204,17 @@ defmodule PatientMatching.Comparators do
   def same_phone?({_, p1, _}, {_, p2, _}), do: exact?(p1, p2)
   @doc "Contact tuples: street and ZIP both agree."
   def street_and_zip?({z1, _, s1}, {z2, _, s2}), do: exact?(s1, s2) and exact?(z1, z2)
+
+  @doc """
+  Contact tuples: ZIP and the street without its unit agree, and only one side
+  has a unit. Different units at one building are different households.
+  """
+  def building_and_zip?({z1, _, s1}, {z2, _, s2}) do
+    {b1, u1} = Normalize.street_unit(s1)
+    {b2, u2} = Normalize.street_unit(s2)
+    exact?(z1, z2) and exact?(b1, b2) and (u1 == nil or u2 == nil)
+  end
+
   @doc "Contact tuples: ZIP agrees."
   def same_zip?({z1, _, _}, {z2, _, _}), do: exact?(z1, z2)
 

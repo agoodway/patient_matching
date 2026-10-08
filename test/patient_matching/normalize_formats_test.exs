@@ -81,6 +81,39 @@ defmodule PatientMatching.NormalizeFormatsTest do
     assert norm(%{zip: "21391234"}).zip == "02139"
   end
 
+  test "streets use USPS suffix, directional and unit short forms" do
+    for text <- ["123 North Main Street", "123 N. Main St", "123 n main str"] do
+      assert norm(%{street: text}).street == "123 N MAIN ST", text
+    end
+
+    for text <- [
+          "4 Oak Ave Apt 12",
+          "4 OAK AVENUE #12",
+          "4 Oak Av Unit 12",
+          "4 Oak Ave Apt #12",
+          "4 Oak Ave APT12"
+        ] do
+      assert norm(%{street: text}).street == "4 OAK AVE UNIT 12", text
+    end
+
+    assert norm(%{street: "P.O. Box 55"}).street == "PO BOX 55"
+    assert norm(%{street: "Post Office Box 55"}).street == "PO BOX 55"
+    assert norm(%{street: "9 United Ave"}).street == "9 UNITED AVE"
+    assert norm(%{street: "12 Elm St Apt"}).street == "12 ELM ST"
+    assert norm(%{street: "#"}).street == nil
+    assert Normalize.value(:street, "1 Main Street") == "1 MAIN ST"
+  end
+
+  test "building agreement needs the same street and ZIP with a unit on one side only" do
+    contact = fn street -> {"77036", nil, norm(%{street: street}).street} end
+
+    assert Comparators.building_and_zip?(contact.("4 Oak Ave"), contact.("4 Oak Ave Apt 12"))
+    refute Comparators.building_and_zip?(contact.("4 Oak Ave #3"), contact.("4 Oak Ave Apt 12"))
+    refute Comparators.building_and_zip?(contact.("4 Oak Ave"), contact.("6 Oak Ave Apt 12"))
+    refute Comparators.building_and_zip?(contact.("4 Oak Ave"), {"77037", nil, "4 OAK AVE"})
+    refute Comparators.building_and_zip?(contact.(nil), contact.("4 Oak Ave"))
+  end
+
   test "SSNs: nine digits, last four kept apart, integers accepted" do
     assert norm(%{ssn: "212-45-6789"}).ssn == "212456789"
     assert norm(%{ssn: 212_456_789}).ssn == "212456789"
