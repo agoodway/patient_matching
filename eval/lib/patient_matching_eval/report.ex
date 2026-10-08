@@ -1,8 +1,6 @@
 defmodule PatientMatchingEval.Report do
   @moduledoc "Renders run metrics, golden results and baseline deltas as plain text."
 
-  @min_tag_pairs 15
-
   @doc "Full text report."
   def render(runs, golden, baseline) do
     [
@@ -22,6 +20,7 @@ defmodule PatientMatchingEval.Report do
       "records #{int(m.records)} · true pairs #{int(m.true_pairs)} · train #{secs(m.timings.train_ms)} · score #{secs(m.timings.score_ms)}",
       "model   λ=#{sig(m.model.lambda)} (#{m.model.trained.lambda_source}) · λ in training blocks #{Enum.map_join(Map.get(m.model.trained, :lambda_train, []), "/", &sig/1)} · EM iters #{m.model.trained.em_iters} · unstable=#{m.model.trained.unstable}",
       "block   #{int(m.candidates)} candidates · blocking recall #{pct(m.blocking_recall)} · dropped blocks #{m.dropped_blocks}",
+      dropped_rule_lines(m),
       "decide  auto-match #{int(m.matches)} (precision #{pct(m.precision)}, recall #{pct(m.recall)}, F1 #{pct(m.f1)})",
       "        review #{int(m.review)} (#{int(m.review_true)} true) · recall incl. review #{pct(m.recall_with_review)}",
       "missed  unblocked #{int(m.missed_by_stage.unblocked)} · scored non-match #{int(m.missed_by_stage.scored_non_match)} · in review #{int(m.missed_by_stage.review)}",
@@ -30,7 +29,7 @@ defmodule PatientMatchingEval.Report do
       cluster_line(m.clusters),
       assignment_line(m.assignment),
       "",
-      "  Hardest data-quality conditions (true pairs touching a tag, n ≥ #{@min_tag_pairs}):",
+      "  Hardest data-quality conditions (true pairs touching a tag; <100 is low-support):",
       tag_table(m.tags),
       "",
       "  By population slice (recall over true pairs; false auto-matched pairs per 1k records):",
@@ -48,6 +47,14 @@ defmodule PatientMatchingEval.Report do
       examples("False auto-match examples", m.false_match_examples),
       examples("Missed true-pair examples", m.missed_examples)
     ]
+  end
+
+  defp dropped_rule_lines(m) do
+    m.blocking_rules
+    |> Enum.with_index()
+    |> Enum.map(fn {rule, index} ->
+      "        rule #{index} #{inspect(rule)}: #{m.dropped_blocks_by_rule[index]} dropped blocks"
+    end)
   end
 
   defp guard_line(guards) when map_size(guards) == 0, do: "guards  none fired"
@@ -74,17 +81,15 @@ defmodule PatientMatchingEval.Report do
   defp tag_table(tags) do
     rows =
       tags
-      |> Enum.filter(fn {_, r} -> r.pairs >= @min_tag_pairs end)
       |> Enum.sort_by(fn {_, r} -> r.recall_with_review || 1 end)
-      |> Enum.take(18)
 
     header =
-      "    #{pad("tag", 28)} #{pad("pairs", 7)} #{pad("blocked", 8)} #{pad("auto", 7)} +review"
+      "    #{pad("tag", 28)} #{pad("people", 7)} #{pad("pairs", 7)} #{pad("blocked", 8)} #{pad("auto", 7)} +review"
 
     [
       header
       | Enum.map(rows, fn {tag, r} ->
-          "    #{pad(tag, 28)} #{pad(int(r.pairs), 7)} #{pad(pct(r.blocked), 8)} #{pad(pct(r.recall), 7)} #{pct(r.recall_with_review)}"
+          "    #{pad(tag, 28)} #{pad(int(r.distinct_people), 7)} #{pad(int(r.pairs), 7)} #{pad(pct(r.blocked), 8)} #{pad(pct(r.recall), 7)} #{pct(r.recall_with_review)} #{r.support}"
         end)
     ]
   end
@@ -93,7 +98,7 @@ defmodule PatientMatchingEval.Report do
     rows
     |> Enum.sort_by(fn {_, r} -> -r.records end)
     |> Enum.map(fn {v, r} ->
-      "    #{pad(if(label, do: "#{label}=#{v}", else: v), 22)} records #{pad(int(r.records), 7)} recall #{pad(pct(r.recall), 7)} +review #{pad(pct(r.recall_with_review), 7)} false/1k #{r.false_matches_per_1k_records}"
+      "    #{pad(if(label, do: "#{label}=#{v}", else: v), 22)} records #{pad(int(r.records), 7)} recall #{pad(pct(r.recall), 7)} +review #{pad(pct(r.recall_with_review), 7)} false/1k #{r.false_matches_per_1k_records} people #{r.distinct_people} pairs #{r.pairs} #{r.support}"
     end)
   end
 

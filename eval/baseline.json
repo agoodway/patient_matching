@@ -1,4 +1,62 @@
 {
+  "runs": {
+    "county_hospital_duplicates": {
+      "precision": 1.0,
+      "blocking_recall": 0.9895833333333334,
+      "recall": 0.8958333333333334,
+      "recall_with_review": 0.9583333333333334,
+      "false_matches": 0,
+      "review": 7
+    },
+    "county_hospital_x_fqhc": {
+      "precision": 1.0,
+      "blocking_recall": 1.0,
+      "recall": 0.9380165289256198,
+      "recall_with_review": 0.9917355371900827,
+      "false_matches": 0,
+      "review": 14
+    },
+    "enterprise_mpi": {
+      "precision": 0.9972806810120596,
+      "blocking_recall": 0.9976987688413301,
+      "recall": 0.9705442411690254,
+      "recall_with_review": 0.9939017374295248,
+      "false_matches": 23,
+      "review": 439
+    },
+    "enterprise_mpi_oracle_lambda": {
+      "precision": 0.997278750591576,
+      "blocking_recall": 0.9976987688413301,
+      "recall": 0.9698538718214245,
+      "recall_with_review": 0.9937866758715913,
+      "false_matches": 23,
+      "review": 441
+    },
+    "hospital_a_x_county_hospital": {
+      "precision": 1.0,
+      "blocking_recall": 1.0,
+      "recall": 0.9642857142857143,
+      "recall_with_review": 1.0,
+      "false_matches": 0,
+      "review": 18
+    },
+    "pharmacy_x_payer": {
+      "precision": 1.0,
+      "blocking_recall": 1.0,
+      "recall": 0.9904264577893821,
+      "recall_with_review": 0.999129677980853,
+      "false_matches": 0,
+      "review": 45
+    },
+    "reference_lab_x_hospital_a": {
+      "precision": 1.0,
+      "blocking_recall": 0.9972602739726028,
+      "recall": 0.958904109589041,
+      "recall_with_review": 0.9876712328767123,
+      "false_matches": 0,
+      "review": 27
+    }
+  },
   "golden": {
     "mrn-leading-zeros": true,
     "fmt-phone-country-code": true,
@@ -12,7 +70,7 @@
     "goes-by-middle": true,
     "particle-mc": true,
     "phone-changed-ssn-agrees": true,
-    "common-name-same-dob": false,
+    "common-name-same-dob": true,
     "household-chain": true,
     "translit-nguyen-ngyuen": true,
     "fmt-zip-plus4": true,
@@ -84,63 +142,10 @@
     "placeholder-ssn-zeros": true,
     "fmt-sex-coding": true
   },
-  "runs": {
-    "county_hospital_duplicates": {
-      "precision": 0.9857142857142858,
-      "blocking_recall": 0.9882352941176471,
-      "recall": 0.8117647058823529,
-      "recall_with_review": 0.9529411764705882,
-      "false_matches": 1,
-      "review": 12
-    },
-    "county_hospital_x_fqhc": {
-      "precision": 0.9952380952380953,
-      "blocking_recall": 0.9955156950672646,
-      "recall": 0.9372197309417041,
-      "recall_with_review": 0.9730941704035875,
-      "false_matches": 1,
-      "review": 8
-    },
-    "enterprise_mpi": {
-      "precision": 0.9970534904805077,
-      "blocking_recall": 0.9976993865030674,
-      "recall": 0.9638475021910605,
-      "recall_with_review": 0.9923312883435583,
-      "false_matches": 26,
-      "review": 429
-    },
-    "enterprise_mpi_oracle_lambda": {
-      "precision": 0.9970524883800023,
-      "blocking_recall": 0.9976993865030674,
-      "recall": 0.9635188431200701,
-      "recall_with_review": 0.9922217353198949,
-      "false_matches": 26,
-      "review": 415
-    },
-    "hospital_a_x_county_hospital": {
-      "precision": 0.9933333333333333,
-      "blocking_recall": 0.9903536977491961,
-      "recall": 0.9581993569131833,
-      "recall_with_review": 0.9839228295819936,
-      "false_matches": 2,
-      "review": 31
-    },
-    "pharmacy_x_payer": {
-      "precision": 0.9984139571768438,
-      "blocking_recall": 1.0,
-      "recall": 0.9929022082018928,
-      "recall_with_review": 0.999211356466877,
-      "false_matches": 2,
-      "review": 41
-    },
-    "reference_lab_x_hospital_a": {
-      "precision": 1.0,
-      "blocking_recall": 0.9973404255319149,
-      "recall": 0.9521276595744681,
-      "recall_with_review": 0.988031914893617,
-      "false_matches": 0,
-      "review": 35
-    }
+  "dataset_hashes": {
+    "people.jsonl": "6014756f15e0914346cba7862130a6f895ba9130fe8df4a7ed41216d3320c0fc",
+    "records.jsonl": "4caab16273bb05b50a3717b945dcd75e8b810b95bf5a1a2e4dc6695847a65198",
+    "truth.jsonl": "b427c9b4c8a9535fe8bd4027c1fb6d6dcafcd4ecb9ec195ce2d3fdc3cadfa507"
   },
-  "saved_at": "2026-10-07T19:04:30Z"
+  "saved_at": "2026-10-08T11:15:51Z"
 }

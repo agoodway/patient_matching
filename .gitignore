@@ -31,3 +31,9 @@ patient_matching-*.tar
 
 # Eval run output (mix eval.run).
 /eval/results/
+
+# Extended generated datasets; the small default population stays committed.
+/eval/data/*/
+!/eval/data/population/
+!/eval/data/curated/
+!/eval/data/reference/

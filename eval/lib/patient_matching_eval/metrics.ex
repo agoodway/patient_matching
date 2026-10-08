@@ -9,7 +9,7 @@ defmodule PatientMatchingEval.Metrics do
     * recall by data-quality tag and by demographic slice
     * threshold sweep, and for dedupe the clusters (overlays, chaining, B-cubed)
   """
-  alias PatientMatchingEval.Dataset
+  alias PatientMatchingEval.{Dataset, Validation}
 
   @sweep [0.5, 0.8, 0.9, 0.95, 0.99, 0.999]
   @placeholder_tags ~w(unknown_patient dob_placeholder ssn_placeholder phone_placeholder newborn_placeholder)
@@ -42,6 +42,8 @@ defmodule PatientMatchingEval.Metrics do
       true_pairs: MapSet.size(truth),
       candidates: MapSet.size(raw.candidates),
       dropped_blocks: raw.result.dropped_blocks,
+      dropped_blocks_by_rule: raw.result.dropped_blocks_by_rule,
+      blocking_rules: raw.model.config.blocking,
       blocking_recall: ratio(MapSet.size(blocked_true), MapSet.size(truth)),
       matches: MapSet.size(matches),
       review: MapSet.size(review),
@@ -60,7 +62,7 @@ defmodule PatientMatchingEval.Metrics do
       false_match_causes: false_match_causes(false_matches, dataset),
       false_match_examples: examples(false_matches, scored, raw, dataset, 5),
       missed_examples: examples(MapSet.difference(truth, found), scored, raw, dataset, 5),
-      tags: tag_recall(truth, raw.candidates, matches, found, dataset),
+      tags: tag_recall(truth, raw.candidates, matches, found, raw.records, dataset),
       false_match_tags: false_match_tags(false_matches, dataset),
       slices: slices(truth, matches, found, false_matches, raw.records, dataset),
       sweep: sweep(scored, truth),
@@ -178,14 +180,30 @@ defmodule PatientMatchingEval.Metrics do
 
   # ---------------------------------------------------------------- slices
 
-  defp tag_recall(truth, candidates, matches, found, dataset) do
-    truth
-    |> Enum.flat_map(fn {a, b} = pair ->
-      tags = Enum.uniq(dataset.truth[a]["tags"] ++ dataset.truth[b]["tags"])
-      Enum.map(tags, &{&1, pair})
+  defp tag_recall(truth, candidates, matches, found, records, dataset) do
+    pairs_by_tag =
+      truth
+      |> Enum.flat_map(fn {a, b} = pair ->
+        tags = Enum.uniq(dataset.truth[a]["tags"] ++ dataset.truth[b]["tags"])
+        Enum.map(tags, &{&1, pair})
+      end)
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+
+    people_by_tag =
+      records
+      |> Enum.flat_map(fn record ->
+        t = dataset.truth[record.id]
+        Enum.map(t["tags"], &{&1, t["person_id"]})
+      end)
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+
+    tags = Enum.uniq(Validation.tag_names() ++ Map.keys(people_by_tag))
+
+    Map.new(tags, fn tag ->
+      pairs = Map.get(pairs_by_tag, tag, [])
+      distinct = people_by_tag |> Map.get(tag, []) |> Enum.uniq() |> length()
+      {tag, Map.put(rates(pairs, candidates, matches, found), :distinct_people, distinct)}
     end)
-    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
-    |> Map.new(fn {tag, pairs} -> {tag, rates(pairs, candidates, matches, found)} end)
   end
 
   defp rates(pairs, candidates, matches, found) do
@@ -193,6 +211,7 @@ defmodule PatientMatchingEval.Metrics do
 
     %{
       pairs: n,
+      support: Validation.support(n),
       blocked: ratio(Enum.count(pairs, &MapSet.member?(candidates, &1)), n),
       recall: ratio(Enum.count(pairs, &MapSet.member?(matches, &1)), n),
       recall_with_review: ratio(Enum.count(pairs, &MapSet.member?(found, &1)), n)
@@ -224,6 +243,11 @@ defmodule PatientMatchingEval.Metrics do
           {v,
            Map.merge(rates(pairs, MapSet.new(), matches, found) |> Map.delete(:blocked), %{
              records: count,
+             distinct_people:
+               records
+               |> Enum.filter(&(value.(&1.id) == v))
+               |> Enum.uniq_by(&Dataset.person(dataset, &1.id))
+               |> length(),
              false_matches_per_1k_records:
                Float.round(1000 * Map.get(fm, v, 0) / max(count, 1), 2)
            })}

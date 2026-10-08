@@ -1,81 +1,53 @@
 defmodule Mix.Tasks.Eval.Gen do
-  @shortdoc "Generates the synthetic metro patient population for the eval suite"
+  @shortdoc "Explicitly generates a stored synthetic population or benchmark bundle"
   @moduledoc """
-  Generates people, households and per-source MRN records from the static
-  tables in `eval/data`, writing reproducible JSONL into `eval/data/population`.
+  Generate once, then validate or evaluate without regenerating:
 
-      mix eval.gen [--people 4000] [--seed 2026] [--out eval/data/population]
+      mix eval.gen [--people 4000] [--seed 2026] [--out eval/data/population] [--force]
+      mix eval.gen --benchmark --out eval/data/benchmark [--force]
 
-  Outputs:
-
-    * `records.jsonl` – one source record per line, exactly what a matcher sees
-    * `truth.jsonl`   – per-record ground truth: person, household, group, tags
-    * `people.jsonl`  – per-person facts and relationships (spouse, twin, junior, …)
-    * `manifest.json` – parameters and summary counts
-
-  Same seed and tables give byte-identical output.
+  Benchmark populations have fixed sizes/seeds; --people and --seed cannot be combined
+  with --benchmark. Replacing any existing output directory requires --force.
   """
   use Mix.Task
-  alias PatientMatchingEval.{Population, Records, Reference, Rng}
+  alias PatientMatchingEval.Generation
 
   @impl Mix.Task
   def run(args) do
-    {opts, _, _} =
-      OptionParser.parse(args, strict: [people: :integer, seed: :integer, out: :string])
+    {opts, positional, invalid} =
+      OptionParser.parse(args,
+        strict: [
+          people: :integer,
+          seed: :integer,
+          out: :string,
+          benchmark: :boolean,
+          force: :boolean
+        ]
+      )
 
-    target = Keyword.get(opts, :people, 4_000)
-    seed = Keyword.get(opts, :seed, 2026)
-    out = Keyword.get(opts, :out, "eval/data/population")
+    if positional != [] or invalid != [],
+      do: Mix.raise("invalid generation arguments: #{inspect(positional ++ invalid)}")
 
-    Rng.seed(seed)
-    ref = Reference.load()
-    population = Population.build(ref, target)
-    {records, truth} = Records.build(ref, population)
+    if opts[:benchmark] == true and
+         (Keyword.has_key?(opts, :people) or Keyword.has_key?(opts, :seed)),
+       do: Mix.raise("--benchmark cannot be combined with --people or --seed")
 
-    File.mkdir_p!(out)
-    jsonl(Path.join(out, "records.jsonl"), records)
-    jsonl(Path.join(out, "truth.jsonl"), truth)
-    jsonl(Path.join(out, "people.jsonl"), Enum.map(population.people, &person_json/1))
+    out =
+      opts[:out] || if(opts[:benchmark], do: "eval/data/benchmark", else: "eval/data/population")
 
-    manifest = %{
-      "seed" => seed,
-      "people" => length(population.people),
-      "records" => length(records),
-      "households" => population.people |> Enum.uniq_by(& &1.household) |> length(),
-      "records_by_source" => Enum.frequencies_by(records, & &1["source"]),
-      "people_by_group" => Enum.frequencies_by(population.people, &to_string(&1.group)),
-      "tag_counts" => truth |> Enum.flat_map(& &1["tags"]) |> Enum.frequencies()
-    }
+    if opts[:benchmark] do
+      Generation.benchmark(out, opts[:force] || false)
+      Mix.shell().info("benchmark bundle → #{out}")
+    else
+      manifest =
+        Generation.population(
+          out,
+          opts[:people] || 4000,
+          opts[:seed] || 2026,
+          opts[:force] || false
+        )
 
-    File.write!(Path.join(out, "manifest.json"), Jason.encode!(manifest, pretty: true) <> "\n")
-    Mix.shell().info("#{manifest["people"]} people, #{manifest["records"]} records → #{out}")
-  end
-
-  defp person_json(p) do
-    %{
-      "person_id" => p.pid,
-      "household" => p.household,
-      "group" => to_string(p.group),
-      "origin" => p.origin,
-      "foreign_born" => p.foreign_born,
-      "sex" => p.sex,
-      "dob" => Date.to_iso8601(p.dob),
-      "given" => p.given,
-      "middle" => p.middle,
-      "surnames" => Enum.map(p.surnames, fn {d, s} -> [Date.to_iso8601(d), s] end),
-      "suffix" => p.suffix,
-      "ssn_kind" => p.ssn |> elem(0) |> to_string(),
-      "ssn_lender" => Map.get(p, :ssn_lender),
-      "insured" => p.insured,
-      "spouse" => p.spouse,
-      "mother" => p.mother,
-      "father" => p.father,
-      "twin" => p.twin,
-      "junior_of" => p.junior_of
-    }
-  end
-
-  defp jsonl(path, rows) do
-    File.write!(path, Enum.map(rows, &[Jason.encode!(&1), "\n"]))
+      Mix.shell().info("#{manifest["people"]} people, #{manifest["records"]} records → #{out}")
+    end
   end
 end

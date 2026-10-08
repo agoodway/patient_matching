@@ -9,24 +9,40 @@ defmodule PatientMatchingEval.Dataset do
             &{Atom.to_string(&1), &1}
           )
 
-  defstruct records: [], truth: %{}, people: %{}
+  alias PatientMatchingEval.{Artifacts, Reference, Validation}
+
+  defstruct records: [], truth: %{}, people: %{}, hashes: %{}, manifest: %{}, warnings: []
 
   @doc "Reads records.jsonl, truth.jsonl and people.jsonl from a population directory."
   def load(dir) do
-    unless File.exists?(Path.join(dir, "records.jsonl")),
-      do: Mix.raise("no population in #{dir}; run `mix eval.gen` first")
+    files = ~w(records.jsonl truth.jsonl people.jsonl)
+    Artifacts.require!(dir, files ++ ["manifest.json"], "mix eval.gen --out #{dir}")
+    manifest = Reference.json!(Path.join(dir, "manifest.json"))
+    hashes = Artifacts.verify!(dir, manifest, files)
+    records = Artifacts.rows(Path.join(dir, "records.jsonl"))
+    truth = Artifacts.rows(Path.join(dir, "truth.jsonl"))
+    people = Artifacts.rows(Path.join(dir, "people.jsonl"))
+    errors = Validation.structural(records, truth, people)
+    if errors != [], do: Mix.raise("invalid population #{dir}:\n" <> Enum.join(errors, "\n"))
 
-    records =
-      Path.join(dir, "records.jsonl")
-      |> jsonl()
-      |> Enum.map(fn row ->
-        row |> Map.take(Map.keys(@fields)) |> Map.new(fn {k, v} -> {@fields[k], v} end)
-      end)
+    warnings =
+      if manifest["generator_version"] && manifest["output_hashes"],
+        do: [],
+        else: ["legacy population manifest: provenance unverified"]
 
-    truth = dir |> Path.join("truth.jsonl") |> jsonl() |> Map.new(&{&1["id"], &1})
-    people = dir |> Path.join("people.jsonl") |> jsonl() |> Map.new(&{&1["person_id"], &1})
-    %__MODULE__{records: records, truth: truth, people: people}
+    %__MODULE__{
+      records: Enum.map(records, &record/1),
+      truth: Map.new(truth, &{&1["id"], &1}),
+      people: Map.new(people, &{&1["person_id"], &1}),
+      hashes: hashes,
+      manifest: manifest,
+      warnings: warnings
+    }
   end
+
+  @doc "Converts matcher-facing fields to atom keys."
+  def record(row),
+    do: row |> Map.take(Map.keys(@fields)) |> Map.new(fn {k, v} -> {@fields[k], v} end)
 
   @doc "Records whose source is in the list (or every record for \"all\")."
   def from_sources(%__MODULE__{records: records}, "all"), do: records
@@ -62,6 +78,4 @@ defmodule PatientMatchingEval.Dataset do
 
   defp combinations([]), do: []
   defp combinations([h | t]), do: Enum.map(t, &{h, &1}) ++ combinations(t)
-
-  defp jsonl(path), do: path |> File.stream!() |> Enum.map(&Jason.decode!/1)
 end

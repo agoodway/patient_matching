@@ -1,5 +1,5 @@
 {
-  "_note": "Runs executed by `mix eval.run`. Each run trains its own model on its own input, as a caller would. train.lambda may be a number or \"oracle\" (the true match rate among all pairs of the training file) to isolate prior-estimation error.",
+  "_note": "Runs executed by `mix eval.run`. Each run trains its own model on its own input, as a caller would. train.lambda may be a number or \"oracle\" (the true match rate among all pairs of the training file) to isolate prior-estimation error. Acceptance targets are explicit regression budgets for the committed seed-2026 population, not production accuracy guarantees. Largest cluster size is diagnostic: one true patient may have eight records.",
   "population": "eval/data/population",
   "scenarios": "eval/scenarios",
   "golden_model": "enterprise_mpi",
@@ -8,49 +8,115 @@
       "name": "enterprise_mpi",
       "kind": "dedupe",
       "sources": "all",
-      "description": "Enterprise master patient index: every source in one file, deduplicated."
+      "description": "Enterprise master patient index: every source in one file, deduplicated.",
+      "acceptance": {
+        "precision": {"min": 0.997},
+        "recall": {"min": 0.96},
+        "recall_with_review": {"min": 0.99},
+        "false_matches": {"max": 26},
+        "clusters": {
+          "overlay_clusters": {"max": 8},
+          "bcubed_precision": {"min": 0.998},
+          "bcubed_recall": {"min": 0.97}
+        }
+      }
     },
     {
       "name": "enterprise_mpi_oracle_lambda",
       "kind": "dedupe",
       "sources": "all",
-      "train": {"lambda": "oracle"},
+      "train": {
+        "lambda": "oracle"
+      },
       "diagnostic": true,
-      "description": "Same as enterprise_mpi with the prior fixed to the true training-pair match rate, isolating prior estimation from comparison design."
+      "description": "Same as enterprise_mpi with the prior fixed to the true training-pair match rate, isolating prior estimation from comparison design.",
+      "acceptance": {
+        "precision": {"min": 0.997},
+        "recall": {"min": 0.96},
+        "recall_with_review": {"min": 0.99},
+        "false_matches": {"max": 26},
+        "clusters": {
+          "overlay_clusters": {"max": 8},
+          "bcubed_precision": {"min": 0.998},
+          "bcubed_recall": {"min": 0.97}
+        }
+      }
     },
     {
       "name": "county_hospital_duplicates",
       "kind": "dedupe",
       "sources": ["county_hospital"],
-      "description": "Duplicate-registration cleanup inside the safety-net hospital."
+      "description": "Duplicate-registration cleanup inside the safety-net hospital.",
+      "acceptance": {
+        "precision": {"min": 0.98},
+        "recall": {"min": 0.8},
+        "recall_with_review": {"min": 0.95},
+        "false_matches": {"max": 1},
+        "clusters": {
+          "overlay_clusters": {"max": 0},
+          "bcubed_precision": {"min": 0.99},
+          "bcubed_recall": {"min": 0.98}
+        }
+      }
     },
     {
       "name": "hospital_a_x_county_hospital",
       "kind": "link",
       "left": ["hospital_a"],
       "right": ["county_hospital"],
-      "description": "Health information exchange between a private system and the county system."
+      "description": "Health information exchange between a private system and the county system.",
+      "acceptance": {
+        "precision": {"min": 0.99},
+        "recall": {"min": 0.95},
+        "recall_with_review": {"min": 0.98},
+        "false_matches": {"max": 2}
+      }
     },
     {
       "name": "county_hospital_x_fqhc",
       "kind": "link",
       "left": ["county_hospital"],
       "right": ["fqhc"],
-      "description": "Safety-net referral network: county hospital to community clinics."
+      "description": "Safety-net referral network: county hospital to community clinics.",
+      "acceptance": {
+        "precision": {"min": 0.99},
+        "recall": {"min": 0.93},
+        "recall_with_review": {"min": 0.97},
+        "false_matches": {"max": 1}
+      }
     },
     {
       "name": "reference_lab_x_hospital_a",
       "kind": "link",
       "left": ["reference_lab"],
       "right": ["hospital_a"],
-      "description": "Attaching outside lab results to hospital charts (thin, truncated lab demographics)."
+      "description": "Attaching outside lab results to hospital charts (thin, truncated lab demographics).",
+      "acceptance": {
+        "precision": {"min": 0.995},
+        "recall": {"min": 0.945},
+        "recall_with_review": {"min": 0.985},
+        "false_matches": {"max": 0}
+      }
     },
     {
       "name": "pharmacy_x_payer",
       "kind": "link",
       "left": ["pharmacy"],
       "right": ["payer"],
-      "description": "Claims-to-dispensing reconciliation (nicknames vs legal names, SSN last-4 only)."
+      "description": "Claims-to-dispensing reconciliation (nicknames vs legal names, SSN last-4 only).",
+      "acceptance": {
+        "precision": {"min": 0.995},
+        "recall": {"min": 0.99},
+        "recall_with_review": {"min": 0.995},
+        "false_matches": {"max": 2}
+      }
     }
-  ]
+  ],
+  "acceptance": {
+    "golden": {
+      "cases": {"min": 83},
+      "failures": {"max": 0},
+      "overlay_failures": {"max": 0}
+    }
+  }
 }

@@ -70,16 +70,18 @@ defmodule PatientMatchingEval.Execute do
     blocked =
       Blocking.candidates(input, config.blocking, type,
         max_block_size: config.max_block_size,
-        placeholders: config.placeholders
+        placeholders: config.placeholders,
+        strip_mrn_leading_zeros: config.strip_mrn_leading_zeros
       )
 
     prepared =
       case input do
         {l, r} ->
-          {Blocking.prepare(l, config.placeholders), Blocking.prepare(r, config.placeholders)}
+          {Blocking.prepare(l, config.placeholders, config.strip_mrn_leading_zeros),
+           Blocking.prepare(r, config.placeholders, config.strip_mrn_leading_zeros)}
 
         records ->
-          Blocking.prepare(records, config.placeholders)
+          Blocking.prepare(records, config.placeholders, config.strip_mrn_leading_zeros)
       end
 
     kind = if type == :dedupe_only, do: :dedupe, else: :link

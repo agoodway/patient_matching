@@ -15,11 +15,26 @@ defmodule PatientMatchingEval.Population do
   @doc "Reference date for ages and history windows."
   def today, do: @today
 
-  @doc "Generates at least `target` people. Returns `%{people: [...], by_id: %{}}`."
-  def build(ref, target) do
+  @doc "Generates at least `target` people, or exactly `target` with `exact: true`, retaining only modeled relationships."
+  def build(ref, target, opts \\ []) do
     {people, _next} = households(ref, target, [], 1, 1)
-    people = assign_borrowed_ssns(ref, Enum.reverse(people))
+    people = Enum.reverse(people)
+    people = if opts[:exact], do: limit_people(people, target), else: people
+    people = assign_borrowed_ssns(ref, people)
     %{people: people, by_id: Map.new(people, &{&1.pid, &1})}
+  end
+
+  defp limit_people(people, target) do
+    people = Enum.take(people, target)
+    ids = MapSet.new(people, & &1.pid)
+    household_sizes = Enum.frequencies_by(people, & &1.household)
+
+    Enum.map(people, fn person ->
+      Enum.reduce([:mother, :father, :spouse, :twin, :junior_of], person, fn role, acc ->
+        if acc[role] && not MapSet.member?(ids, acc[role]), do: Map.put(acc, role, nil), else: acc
+      end)
+      |> Map.put(:household_size, household_sizes[person.household])
+    end)
   end
 
   @doc "Resolves a `{date, value}` history at a date, falling back to the earliest value."
@@ -173,8 +188,8 @@ defmodule PatientMatchingEval.Population do
   defp add_children(_ref, members, pid, _hid, n) when n <= 0, do: {members, pid}
 
   defp add_children(ref, [head | _] = members, pid, hid, n) do
-    mother = Enum.find(members, &(&1.sex == "F")) || head
-    father = Enum.find(members, &(&1.sex == "M" and &1.pid != mother.pid))
+    mother = Enum.find(members, &(&1.sex == "F"))
+    father = Enum.find(members, &(&1.sex == "M"))
     youngest_parent_age = members |> Enum.map(&age(&1.dob, @today)) |> Enum.min()
 
     {kids, pid} =
@@ -185,7 +200,8 @@ defmodule PatientMatchingEval.Population do
         child = child(ref, pid, hid, head, mother, father, dob)
 
         if Rng.chance?(ref.metro["twin_rate"]) and length(kids) + 1 < n do
-          twin = child(ref, pid + 1, hid, head, mother, father, dob) |> twin_name(child)
+          twin = child(ref, pid + 1, hid, head, mother, father, child.dob) |> twin_name(child)
+          twin = %{twin | dob: child.dob, jan1_dob: child.jan1_dob, surnames: child.surnames}
           {[%{twin | twin: child.pid}, %{child | twin: twin.pid} | kids], pid + 2}
         else
           {[child | kids], pid + 1}
