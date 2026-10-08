@@ -2,12 +2,30 @@
 
 ## Unreleased
 
-Driven by the new evaluation suite (`eval/`, dev only). On its synthetic
+The initial matching-policy improvements were measured by the evaluation suite (`eval/`, dev only). On its synthetic
 Houston-area population (9,015 records, 6 sources), enterprise dedupe went
-from 57.6% to 99.7% auto-match precision at 96.4% recall, blocking recall from
+from 57.6% to 99.7% auto-match precision at 96.3% recall, blocking recall from
 87.5% to 99.8%, wrongly merged clusters from 525 to 8, and golden scenarios
-from 54/83 to 82/83. A second population generated with another seed gives
-99.4% precision and 96.3% recall.
+from 54/83 to 83/83. On a separate seed-2027 population, the new policy gives
+99.8% precision and 95.8% auto-match recall (99.4% including review).
+
+Dataset generator v2 fixes single-parent roles and twin DOB consistency. The
+explicitly regenerated default has 4,000 people / 8,809 records; enterprise
+precision is 99.678%, recall 96.053% (99.287% including review), with 27 false
+matches, six overlay clusters and 83/83 passing golden cases. The changed dataset
+has a refreshed hash-bearing baseline; the historical figures above describe
+the previous population and are not baseline deltas.
+
+Matcher fixes on the same generator-v2 default clear all nine failing acceptance
+checks: enterprise precision is now 99.728%, recall 97.054% (99.390% including
+review), with 23 false matches, four overlay clusters and 83/83 golden scenarios.
+Newborn ambiguity, borrowed identifiers and mismatched DOBs require review;
+adult aliases retain review evidence, uncertain name typos need an agreeing
+SSN fragment and phone, and corroborated child records may carry a guarantor's
+SSN. Thresholds, budgets,
+golden expectations and nickname mappings are unchanged. Records with no usable
+identity now appear in a separate `record_review` information-gathering queue;
+that queue does not count as finding a matching pair.
 
 ### Breaking
 
@@ -26,7 +44,8 @@ from 54/83 to 82/83. A second population generated with another seed gives
     `:placeholders` option).
   - Unknown and numeric sex codes are nil.
   - Phone drops a leading `1` and extensions.
-  - MRN leading zeros are ignored.
+  - MRN leading zeros are ignored by default; `strip_mrn_leading_zeros: false`
+    preserves them consistently during training, blocking and scoring.
 - **Preset.**
   - New comparisons and levels: `contact` (ZIP, phone and street together)
     replaces `zip` and `phone`; `name_order` is new; and the name, DOB and SSN
@@ -37,10 +56,25 @@ from 54/83 to 82/83. A second population generated with another seed gives
   - Guards are on.
 - **Results.** Pairs carry `:guards`. `dedupe/3` also returns `rejected_edges`.
   A same-source MRN agreement is overridden by a guard (reason `:mrn_conflict`).
-- **Model dumps** are version 2 (adding `trained.tf_records` and
-  `trained.lambda_train`); version 1 dumps no longer load.
+- **Model dumps** are version 3, recording MRN normalization and the common-name
+  frequency policy. Incompatible policies fail loading. Version 2 dumps still
+  load with zero stripping enabled; version 1 dumps no longer load.
 
 ### Added
+
+- Explicit persistent generation with overwrite protection and provenance hashes;
+  `mix eval.validate` for structural/coverage assessment and `mix eval.benchmark`
+  for the fixed 50k/10k/10k synthetic bundle plus 1,600 separate challenge pairs.
+- Independent evaluation aliases, dataset-hash-gated baseline deltas, low/zero
+  support diagnostics, and dev-only `mix eval.test` regression coverage.
+
+
+- `dropped_blocks_by_rule` in blocking, link and dedupe results, with zero-based
+  rule indices also included in block-drop logs and evaluation reports.
+- A configurable common-name frequency policy in the preset: exact full name
+  and DOB without corroboration goes to review and cannot chain clusters.
+- `mix eval.run --check` enforces explicit golden and run-quality regression
+  budgets. Legitimate clusters larger than five remain allowed.
 
 - `PatientMatching.Guards`: SSN, DOB, generation suffix, twin, sex + given name,
   newborn birth order and birth date conflicts, missing DOB, and

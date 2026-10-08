@@ -68,7 +68,8 @@ normalized copy under `:normalized`:
 - **ZIP:** first five digits; a 4- or 8-digit value gets back its lost leading zero.
 - **SSN:** nine digits; a four-digit value is kept as `:ssn_partial` for
   last-four comparison and blocking.
-- **MRN:** alphanumeric, leading zeros after any letter prefix ignored.
+- **MRN:** alphanumeric, leading zeros after any letter prefix ignored by default.
+  Set `strip_mrn_leading_zeros: false` to preserve zeros (`HA000123` differs from `HA123`).
 - **Sex:** M/F (MALE/FEMALE accepted); unknown and numeric codes are nil.
 - Integers are accepted for MRN, ZIP, phone and SSN.
 
@@ -82,7 +83,9 @@ nil never counts as agreement.
 
 Defaults: match probability >= 0.95; non-match <= 0.20; otherwise review.
 Override either threshold in `link/4` or `dedupe/3`. Results contain matches and
-review pairs, a count of scored non-matches, and `dropped_blocks`. Unblocked
+review pairs, a count of scored non-matches, `dropped_blocks`, and
+`dropped_blocks_by_rule`. The latter maps zero-based prediction rule indices to
+counts, including zero counts; its sum equals `dropped_blocks`. Unblocked
 pairs are unscored. Pair maps have `left_id`, `right_id`, `probability`, `weight`,
 `reason` and `guards`.
 
@@ -94,6 +97,29 @@ with nothing else in common. A fired guard subtracts its penalty from the weight
 and caps the probability just below the match threshold; the pair lists the
 reasons under `:guards`. These pairs are mostly family members, whose shared
 surname, address and phone would otherwise outweigh the conflict.
+
+Two unnamed newborn records need an agreeing source/MRN before auto-matching.
+Adults with unfamiliar given-name differences and the same surname/DOB go to
+review without the stronger child-twin penalty. Uncertain one-edit name typos
+need both an agreeing SSN fragment and phone to clear that ambiguity.
+A shared SSN cannot override unrelated names and incompatible birthdays. Exact
+full names with incompatible birthdays need corroboration. Child records with
+an exact name/DOB and agreeing phone or street/ZIP may carry a guarantor's SSN.
+
+`link/4` and `dedupe/3` also return `record_review`: records with no usable name,
+DOB, SSN, contact or source/MRN are flagged with `reason: :insufficient_identity`.
+Each entry contains the record's `id` and `side` (`:left`, `:right`, or `:single`).
+This queue asks for more information; it contains no proposed matching pairs
+and does not contribute to pair recall.
+
+The preset also sends exact full-name + DOB agreements to review when both names
+occur in at least 0.4% of training rows and no SSN (full or last four), phone,
+ZIP or street agrees. This model-frequency policy reports
+`:common_name_uncorroborated` and also prevents cluster chaining. Same-source
+MRN agreement clears this policy, but other conflict guards still apply.
+Set `common_name_frequency` to another fraction in `(0, 1]`, or `nil` to disable
+it. Unseen names are not classified as common. Custom configs default to `nil`.
+The policy collects both name frequencies even when TF scoring is disabled.
 
 Same non-nil normalized source and MRN bypass blocking and score probability 1,
 weight 50, reason `:mrn`, unless a guard fires: the pair is then scored
@@ -138,14 +164,17 @@ Prediction blocking is an OR of:
 - Given-name Soundex + family Soundex.
 
 A nil key skips its rule. Blocks larger than `max_block_size` (default 500) are
-omitted and counted, with only hashes/counts logged. MRN matches bypass this
+omitted and counted by rule, with only rule indices, hashes and counts logged. MRN matches bypass this
 limit.
 
 `Presets.patient_mpi(overrides)` and `PatientMatching.config(options)` accept
 comparison/rule overrides plus `link_type` (default `:link_only`), thresholds,
 `lambda_recall` (0.7), `u_sample_size` (100_000), `em_max_iters` (25), `em_tol`
 (1e-4), `seed` (1), `max_block_size` (500), `training_block_size` (200),
-`placeholders` and `guards`. Key functions receive a normalized record. Derived
+`placeholders`, `guards`, `strip_mrn_leading_zeros` (true), and
+`common_name_frequency` (0.004 in the preset, nil in custom configs).
+To disable every guard and the frequency policy, set `guards: []` and
+`common_name_frequency: nil`. Key functions receive a normalized record. Derived
 key atoms are `:family_soundex`, `:given_soundex`, `:given_name3`, `:dob_year`,
 and `:ssn_last4`; other atoms (including `:dob`) read normalized fields.
 
@@ -208,9 +237,12 @@ predicates; arbitrary renamed predicates cannot be inferred as exact-style.
 ## Saving models
 
 `dump/1` returns versioned Jason JSON containing parameters, level names/flags,
-and term frequencies. Matcher/blocking functions are not serialized.
+and term frequencies. Version 3 also records MRN normalization and the
+common-name frequency policy. Matcher/blocking functions are not serialized.
 `load(json, original_config)` reattaches them from the supplied config and
-validates the comparison shape and probability data. Supply the same predicate
+validates the comparison shape, probability data, and both policy settings.
+Version 2 dumps still load with zero stripping enabled; the supplied common-name
+policy is applied. Version 1 dumps do not load. Supply the same predicate
 semantics; level names alone cannot verify function equivalence.
 
 ## Development
@@ -239,5 +271,9 @@ including EM recovery, planted-pair quality, blocking reduction, null isolation,
 log hygiene, and serialization. No SQL backend, external matching service,
 supervised classifier, or Hex publishing is included.
 
-`eval/` holds a report-only evaluation suite on a synthetic, diverse
-large-metro population (dev only, not packaged). See `eval/README.md`.
+`eval/` holds a dev-only synthetic evaluation harness. `mix eval.gen` explicitly
+creates persistent datasets; `mix eval.validate` assesses integrity/coverage;
+`mix eval.run` evaluates the committed population. Generate the fixed extended
+bundle with `mix eval.gen --benchmark --out eval/data/benchmark`, then evaluate
+it independently with `mix eval.benchmark --datasets eval/data/benchmark`.
+Validation and evaluation never regenerate datasets. See [eval/README.md](eval/README.md).
