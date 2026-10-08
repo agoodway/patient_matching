@@ -30,6 +30,10 @@ defmodule PatientMatching.Guards do
     * `:generation_suffix` (10) - different suffixes (JR / SR, II / III).
     * `:twin` (10) - children with the same birth date and family name, but
       given names that are not variants of each other.
+    * `:sibling` (10) - the same family name with unrelated given names and
+      incompatible birth dates, and no shared full SSN. Siblings share
+      surname, phone and address; `:dob_conflict` misses those born less
+      than two years apart.
     * `:sex_and_given_name` (10) - recorded sexes and given names both differ.
     * `:birth_order` (30) - newborn labels with different birth orders
       (`BABY BOY A` / `BABY BOY B`).
@@ -71,6 +75,7 @@ defmodule PatientMatching.Guards do
       {:dob_conflict, &dob_conflict?/2, 30.0},
       {:generation_suffix, &generation_suffix?/2, 10.0},
       {:twin, &child_twin?/2, 10.0},
+      {:sibling, &sibling?/2, 10.0},
       {:adult_name_ambiguity, &adult_name_ambiguity?/2, 0.0},
       {:newborn_identity, &newborn_identity?/2, 0.0},
       {:shared_ssn_conflict, &shared_ssn_conflict?/2, 0.0},
@@ -191,6 +196,12 @@ defmodule PatientMatching.Guards do
 
   @doc "Children with differing given names and the same birth date may be twins."
   def child_twin?(a, b), do: twin?(a, b) and not adult?(a[:dob])
+
+  @doc "Same family name, unrelated given names and incompatible birth dates, without a shared full SSN."
+  def sibling?(a, b) do
+    same_family?(a, b) and different_given?(a[:given_name], b[:given_name]) and
+      incompatible_dob?(a, b) and not Comparators.exact?(a[:ssn], b[:ssn])
+  end
 
   @doc "Adult name differences with the same surname and DOB require review; aliases remain possible."
   def adult_name_ambiguity?(a, b),

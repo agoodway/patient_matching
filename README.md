@@ -100,7 +100,8 @@ pairs are unscored. Pair maps have `left_id`, `right_id`, `probability`, `weight
 
 **Guards** (`PatientMatching.Guards`, on in the preset) stop pairs that a single
 field shows to be different people from auto-matching, however well the rest
-agrees: different SSNs, birth years decades apart, JR vs SR, twins, newborn
+agrees: different SSNs, birth years decades apart, JR vs SR, twins, siblings
+(same surname, unrelated given names and birth dates), newborn
 labels with different birth orders or dates, a missing DOB, and Jan-1 birthdays
 with nothing else in common. A fired guard subtracts its penalty from the weight
 and caps the probability just below the match threshold; the pair lists the

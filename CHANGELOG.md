@@ -61,6 +61,8 @@ that queue does not count as finding a matching pair.
   - Guards are on.
   - The `contact` comparison gains `building_and_zip` (same street and ZIP,
     unit on one side only), so models saved before it must be retrained.
+  - New `:sibling` guard: same family name, unrelated given names and
+    incompatible birth dates without a shared full SSN.
 - **Results.** Pairs carry `:guards`. `dedupe/3` also returns `rejected_edges`.
   A same-source MRN agreement is overridden by a guard (reason `:mrn_conflict`).
 - **Model dumps** are version 3, recording MRN normalization and the common-name

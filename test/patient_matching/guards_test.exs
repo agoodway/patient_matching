@@ -29,6 +29,24 @@ defmodule PatientMatching.GuardsTest do
     refute Guards.twin?(n(adult), n(%{adult | given_name: "Henry"}))
   end
 
+  test "siblings: same surname, unrelated given names and incompatible DOBs, unless a full SSN agrees" do
+    a = %{given_name: "Victor", family_name: "Ruelas", dob: "2018-04-08", phone: "3468854076"}
+    assert Guards.sibling?(n(a), n(%{a | given_name: "Jairo", dob: "2017-12-14"}))
+    refute Guards.sibling?(n(a), n(%{a | given_name: "Jairo"}))
+    refute Guards.sibling?(n(a), n(%{a | given_name: "Vic", dob: "2017-12-14"}))
+    refute Guards.sibling?(n(a), n(%{a | given_name: "Jairo", dob: "2018-04-09"}))
+    refute Guards.sibling?(n(a), n(%{a | given_name: "Jairo", dob: "2018-08-04"}))
+
+    refute Guards.sibling?(
+             n(a),
+             n(%{a | family_name: "Lopez", given_name: "Jairo", dob: "2017-12-14"})
+           )
+
+    refute Guards.sibling?(n(a), n(%{a | given_name: nil, dob: "2017-12-14"}))
+    ssn = Map.put(a, :ssn, "212456789")
+    refute Guards.sibling?(n(ssn), n(%{ssn | given_name: "Jairo", dob: "2017-12-14"}))
+  end
+
   test "suffixes, birth order and missing DOB" do
     assert Guards.generation_suffix?(n(%{family_name: "Smith Jr"}), n(%{family_name: "Smith Sr"}))
     refute Guards.generation_suffix?(n(%{family_name: "Smith Jr"}), n(%{family_name: "Smith"}))
