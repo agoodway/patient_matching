@@ -133,21 +133,26 @@ defmodule PatientMatching.ScoringTest do
            }).name == :else
   end
 
-  test "explain levels cover every configured comparison, with and without an MRN override" do
+  test "explain levels cover every configured comparison, for a pure MRN override and a guarded one" do
     config = Presets.patient_mpi(u_sample_size: 1000)
     records = Synthetic.patients(30, 0.2) |> Synthetic.unlabeled()
     model = PatientMatching.train(records, config)
     expected = Enum.map(config.comparisons, & &1.field)
 
-    left = %{id: 1, source: "clinic", mrn: "123", family_name: "Smith", given_name: nil}
-    right = %{id: 2, source: "clinic", mrn: "123", family_name: "Smith", given_name: nil}
+    base = %{source: "clinic", mrn: "123", family_name: "Smith", dob: "1985-04-12"}
 
-    for {l, r} <- [{left, right}, {Map.delete(left, :mrn), Map.delete(right, :mrn)}] do
+    pure =
+      {Map.merge(base, %{id: 1, given_name: nil}), Map.merge(base, %{id: 2, given_name: nil})}
+
+    guarded =
+      {Map.merge(base, %{id: 1, given_name: nil}),
+       Map.merge(base, %{id: 2, given_name: nil, dob: nil})}
+
+    for {{l, r}, reason} <- [{pure, :mrn}, {guarded, :mrn_conflict}] do
       result = PatientMatching.explain(l, r, model)
+      assert result.reason == reason
       assert Enum.map(result.levels, & &1.field) == expected
       assert Enum.any?(result.levels, &(&1.m == nil))
     end
-
-    assert PatientMatching.explain(left, right, model).reason in [:mrn, :mrn_conflict]
   end
 end
