@@ -225,14 +225,17 @@ All tests use synthetic records only.
 - A large strength (e.g. `1.0e9`) pins an estimated field to its prior
   proportions, within the floor and normalization.
 - A small prior (a total of 1 against thousands of expected matches) changes m
-  by less than `1.0e-3`. The test first asserts that both runs converged
-  (`trained.em_iters < em_max_iters` for each session). Otherwise an
+  by less than `1.0e-3`. The test calls `estimate_m/4` directly, once with and
+  once without the prior, and first asserts that each call converged (its own
+  `trained.em_iters < config.em_max_iters`). After `train/3`, `em_iters` is a
+  sum over sessions, so convergence can't be checked from it. Otherwise an
   unconverged fixture, not the prior, could decide the result.
 - A prior on a field excluded from a session (blocked by that session's rule)
   does not change that field in that session. Assert this through
   `estimate_m/4` with explicit `:fields`.
 - Lambda: call `estimate_m/4` directly, not `train/3`, with the same model and
-  `em_max_iters: 1`, with and without `:m_prior`. The `lambda_train` values
+  a config built with `em_max_iters: 1` (a Config field, not an `estimate_m/4`
+  option), with and without `:m_prior`. The `lambda_train` values
   (`matched / total`) must be identical. Going through `train/3` would change
   the starting m, because of the blended start, and lambda would legitimately
   differ.
