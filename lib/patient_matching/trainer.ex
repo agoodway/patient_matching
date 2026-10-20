@@ -277,8 +277,20 @@ defmodule PatientMatching.Trainer do
     end)
   end
 
-  @doc "Initial masses follow the brief. If agreement masses exceed one, normalize them with a floored else remainder. Unknown custom levels start at 0.5."
-  def initial_m(config, overrides \\ %{}) do
+  @doc """
+  Initial masses follow the brief. If agreement masses exceed one, normalize
+  them with a floored else remainder. Unknown custom levels start at 0.5.
+
+  `prior_opts` takes the `:m_prior`, `:m_prior_strength` and
+  `:m_prior_base_weight` options of `train/3`. For each active prior field the
+  base m (defaults merged with `overrides`) is blended with the prior counts as
+  `(k * base + strength * count) / (k + strength * total)`. Fields without an
+  active prior keep the base m untouched.
+  """
+  def initial_m(config, overrides \\ %{}, prior_opts \\ []) do
+    %{prior: prior, strength: strength, base_weight: k} =
+      prior!(config.comparisons, prior_opts)
+
     Map.new(config.comparisons, fn comparison ->
       levels = non_null(comparison)
 
@@ -290,8 +302,81 @@ defmodule PatientMatching.Trainer do
 
       validate_initial_m!(supplied, defaults)
 
-      {comparison.field, distribution(Map.merge(defaults, supplied))}
+      base = distribution(Map.merge(defaults, supplied))
+
+      case Map.fetch(prior, comparison.field) do
+        {:ok, counts} ->
+          total = counts |> Map.values() |> Enum.sum()
+
+          blended =
+            Map.new(base, fn {level, mass} ->
+              {level, (k * mass + strength * counts[level]) / (k + strength * total)}
+            end)
+
+          {comparison.field, distribution(blended)}
+
+        :error ->
+          {comparison.field, base}
+      end
     end)
+  end
+
+  @doc """
+  Validates the m prior options and returns the normalized prior.
+
+  Reads `:m_prior` (default `%{}`), `:m_prior_strength` (default `1.0`) and
+  `:m_prior_base_weight` (default `10.0`) from `opts`. Returns a map with:
+
+    * `:prior` - only the active fields (raw total times strength above 0),
+      each filled to every non-null level with missing levels as `0`
+    * `:totals` - raw count totals before strength, for every field with a
+      nonzero total
+    * `:strength` and `:base_weight` - the two numbers, as floats
+
+  Raises `ArgumentError` with a fixed message when an option is invalid.
+  """
+  def prior!(comparisons, opts) do
+    raw = Keyword.get(opts, :m_prior, %{})
+    strength = Keyword.get(opts, :m_prior_strength, 1.0)
+    base_weight = Keyword.get(opts, :m_prior_base_weight, 10.0)
+
+    unless is_number(strength) and strength >= 0,
+      do: raise(ArgumentError, "m_prior_strength must be a nonnegative number")
+
+    unless is_number(base_weight) and base_weight > 0,
+      do: raise(ArgumentError, "m_prior_base_weight must be a positive number")
+
+    message = "m_prior must map comparison fields to non-null level names with nonnegative counts"
+    unless is_map(raw), do: raise(ArgumentError, message)
+
+    levels_by_field =
+      Map.new(comparisons, fn comparison ->
+        {comparison.field, comparison |> non_null() |> Enum.map(& &1.name)}
+      end)
+
+    totals =
+      Map.new(raw, fn {field, counts} ->
+        valid? =
+          is_map(counts) and Map.has_key?(levels_by_field, field) and
+            Enum.all?(counts, fn {level, count} ->
+              level in levels_by_field[field] and is_number(count) and count >= 0
+            end)
+
+        unless valid?, do: raise(ArgumentError, message)
+        {field, counts |> Map.values() |> Enum.sum()}
+      end)
+
+    prior =
+      for {field, counts} <- raw, totals[field] * strength > 0, into: %{} do
+        {field, Map.new(levels_by_field[field], &{&1, Map.get(counts, &1, 0)})}
+      end
+
+    %{
+      prior: prior,
+      totals: Map.reject(totals, fn {_, total} -> total == 0 end),
+      strength: strength * 1.0,
+      base_weight: base_weight * 1.0
+    }
   end
 
   @doc """

@@ -114,4 +114,98 @@ defmodule PatientMatching.EMTest do
     assert_in_delta Enum.sum(Map.values(m.family_name)), 1.0, 1.0e-12
     assert_in_delta m.family_name.exact, 0.8, 1.0e-6
   end
+
+  describe "m prior validation and initial m" do
+    setup do
+      config = TestModels.fixed().config
+      {:ok, config: config, base: Trainer.initial_m(config).family_name}
+    end
+
+    test "no prior or zero strength leaves initial m bit-identical", %{config: config} do
+      assert Trainer.initial_m(config, %{}, m_prior: %{}) == Trainer.initial_m(config)
+
+      assert Trainer.initial_m(config, %{},
+               m_prior: %{family_name: %{exact: 5}},
+               m_prior_strength: 0
+             ) == Trainer.initial_m(config)
+    end
+
+    test "one label blends 1/11 toward the prior with k = 10", %{config: config, base: base} do
+      m = Trainer.initial_m(config, %{}, m_prior: %{family_name: %{exact: 1}}).family_name
+      # The default else sits at the 1e-6 floor, so renormalizing shifts the others by about 5e-8.
+      assert_in_delta m.exact, (10 * base.exact + 1) / 11, 1.0e-6
+      assert_in_delta m.jw_0_85, 10 * base.jw_0_85 / 11, 1.0e-6
+      # no level drops to the floor unless its default is already there
+      for {l, v} <- m, base[l] > 1.0e-6, do: assert(v > 1.0e-6)
+    end
+
+    test "huge strength makes initial m the prior proportions", %{config: config} do
+      m =
+        Trainer.initial_m(config, %{},
+          m_prior: %{family_name: %{exact: 3, jw_0_85: 1}},
+          m_prior_strength: 1.0e9
+        ).family_name
+
+      assert_in_delta m.exact, 0.75, 1.0e-5
+      assert_in_delta m.jw_0_85, 0.25, 1.0e-5
+      assert m.else >= 1.0e-6
+    end
+
+    test "float counts and m_init combine with the prior", %{config: config} do
+      init = %{family_name: %{exact: 0.6, jw_0_85: 0.3, else: 0.1}}
+      base = Trainer.initial_m(config, init).family_name
+
+      m =
+        Trainer.initial_m(config, init,
+          m_prior: %{family_name: %{exact: 2.5}},
+          m_prior_base_weight: 2.5
+        ).family_name
+
+      assert_in_delta m.exact, (2.5 * base.exact + 2.5) / 5, 1.0e-9
+    end
+
+    test "multi-field comparisons are keyed by comparison name" do
+      config = PatientMatching.Presets.patient_mpi()
+
+      assert %{name_order: %{swapped: 2, else: 0}} =
+               Trainer.prior!(config.comparisons, m_prior: %{name_order: %{swapped: 2}}).prior
+    end
+
+    test "prior! returns raw totals and float numbers even when inactive", %{config: config} do
+      assert Trainer.prior!(config.comparisons,
+               m_prior: %{family_name: %{exact: 3}},
+               m_prior_strength: 0,
+               m_prior_base_weight: 4
+             ) == %{prior: %{}, totals: %{family_name: 3}, strength: 0.0, base_weight: 4.0}
+    end
+
+    test "invalid priors raise fixed messages without values", %{config: config} do
+      comparisons = config.comparisons
+
+      for opts <- [
+            [m_prior: %{zzz_secret: %{exact: 1}}],
+            [m_prior: %{family_name: %{zzz_secret: 1}}],
+            [m_prior: %{family_name: %{null: 1}}],
+            [m_prior: %{family_name: %{exact: -1}}],
+            [m_prior: %{family_name: %{exact: "zzz_secret"}}],
+            [m_prior: [family_name: [exact: 1]]],
+            [m_prior: %{family_name: [exact: 1]}],
+            [m_prior_strength: -1],
+            [m_prior_strength: "zzz_secret"],
+            [m_prior_base_weight: 0],
+            [m_prior_base_weight: -1.0]
+          ] do
+        error = assert_raise ArgumentError, fn -> Trainer.prior!(comparisons, opts) end
+        refute error.message =~ "zzz_secret"
+        refute error.message =~ "-1"
+      end
+
+      # A preset underlying field that is not a comparison name is unknown.
+      preset = PatientMatching.Presets.patient_mpi()
+
+      assert_raise ArgumentError, fn ->
+        Trainer.prior!(preset.comparisons, m_prior: %{zip: %{exact: 1}})
+      end
+    end
+  end
 end
