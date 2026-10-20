@@ -2,38 +2,28 @@ defmodule PatientMatching.EMTest do
   use ExUnit.Case, async: true
   alias PatientMatching.{Config, Model, Synthetic, TestModels, Trainer}
 
+  # Known m and u for the four-field EM fixture.
+  @four_m %{
+    a: %{exact: 0.85, jw_0_85: 0.10, else: 0.05},
+    b: %{exact: 0.80, jw_0_85: 0.15, else: 0.05},
+    c: %{exact: 0.75, jw_0_85: 0.20, else: 0.05},
+    d: %{exact: 0.90, jw_0_85: 0.05, else: 0.05}
+  }
+
+  @four_u %{
+    a: %{exact: 0.05, jw_0_85: 0.10, else: 0.85},
+    b: %{exact: 0.03, jw_0_85: 0.12, else: 0.85},
+    c: %{exact: 0.02, jw_0_85: 0.08, else: 0.90},
+    d: %{exact: 0.08, jw_0_85: 0.12, else: 0.80}
+  }
+
   test "EM recovers known m within 0.05 from pattern counts with u and lambda fixed" do
-    m = %{
-      a: %{exact: 0.85, jw_0_85: 0.10, else: 0.05},
-      b: %{exact: 0.80, jw_0_85: 0.15, else: 0.05},
-      c: %{exact: 0.75, jw_0_85: 0.20, else: 0.05},
-      d: %{exact: 0.90, jw_0_85: 0.05, else: 0.05}
-    }
+    {patterns, model, config} = four_field_fixture(em_tol: 1.0e-8)
+    result = Trainer.estimate_m(patterns, model, config)
 
-    u = %{
-      a: %{exact: 0.05, jw_0_85: 0.10, else: 0.85},
-      b: %{exact: 0.03, jw_0_85: 0.12, else: 0.85},
-      c: %{exact: 0.02, jw_0_85: 0.08, else: 0.90},
-      d: %{exact: 0.08, jw_0_85: 0.12, else: 0.80}
-    }
-
-    comparisons =
-      for field <- [:a, :b, :c, :d], do: %{TestModels.name_comparison() | field: field}
-
-    config = Config.new(comparisons: comparisons, em_tol: 1.0e-8)
-    initial = Trainer.initial_m(config)
-
-    params =
-      Map.new(initial, fn {f, masses} ->
-        {f, Map.new(masses, fn {l, mass} -> {l, %{m: mass, u: u[f][l]}} end)}
-      end)
-
-    model = %Model{config: config, comparisons: comparisons, lambda: 0.15, parameters: params}
-    result = Trainer.estimate_m(Synthetic.patterns(m, u, 0.15), model, config)
-
-    for {field, masses} <- m, {level, truth} <- masses do
+    for {field, masses} <- @four_m, {level, truth} <- masses do
       assert_in_delta result.parameters[field][level].m, truth, 0.05
-      assert result.parameters[field][level].u == u[field][level]
+      assert result.parameters[field][level].u == @four_u[field][level]
     end
 
     assert result.lambda == 0.15
@@ -317,28 +307,14 @@ defmodule PatientMatching.EMTest do
     end
   end
 
-  # The fixture from the first EM test: four name fields with known m and u.
-  defp four_field_fixture do
-    m = %{
-      a: %{exact: 0.85, jw_0_85: 0.10, else: 0.05},
-      b: %{exact: 0.80, jw_0_85: 0.15, else: 0.05},
-      c: %{exact: 0.75, jw_0_85: 0.20, else: 0.05},
-      d: %{exact: 0.90, jw_0_85: 0.05, else: 0.05}
-    }
-
-    u = %{
-      a: %{exact: 0.05, jw_0_85: 0.10, else: 0.85},
-      b: %{exact: 0.03, jw_0_85: 0.12, else: 0.85},
-      c: %{exact: 0.02, jw_0_85: 0.08, else: 0.90},
-      d: %{exact: 0.08, jw_0_85: 0.12, else: 0.80}
-    }
-
+  # Four name fields with known m and u, lambda 0.15, starting from the default initial m.
+  defp four_field_fixture(config_opts \\ []) do
     comparisons =
       for field <- [:a, :b, :c, :d], do: %{TestModels.name_comparison() | field: field}
 
-    config = Config.new(comparisons: comparisons)
-    model = model_from(config, Trainer.initial_m(config), u, 0.15)
-    {Synthetic.patterns(m, u, 0.15), model, config}
+    config = Config.new([comparisons: comparisons] ++ config_opts)
+    model = model_from(config, Trainer.initial_m(config), @four_u, 0.15)
+    {Synthetic.patterns(@four_m, @four_u, 0.15), model, config}
   end
 
   # :family_name and a second name comparison on :b, both with the fixed model's u.

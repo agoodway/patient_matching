@@ -4,6 +4,7 @@ defmodule PatientMatching.Trainer do
   @floor 1.0e-6
   @min_lambda 1.0e-9
   @max_lambda 0.5
+  @m_prior_message "m_prior must map comparison fields to non-null level names with nonnegative counts"
 
   @doc """
   Estimates a model from one file: a random-pair prior, random-pair u, and m
@@ -297,33 +298,36 @@ defmodule PatientMatching.Trainer do
       prior!(config.comparisons, prior_opts)
 
     Map.new(config.comparisons, fn comparison ->
-      levels = non_null(comparison)
-
-      agreements =
-        levels |> Enum.reject(&(&1.name == :else)) |> Map.new(&{&1.name, initial_mass(&1)})
-
-      defaults = Map.put(agreements, :else, max(1 - Enum.sum(Map.values(agreements)), @floor))
-      supplied = Map.get(overrides, comparison.field, %{})
-
-      validate_initial_m!(supplied, defaults)
-
-      base = distribution(Map.merge(defaults, supplied))
+      base = base_m(comparison, Map.get(overrides, comparison.field, %{}))
 
       case Map.fetch(prior, comparison.field) do
-        {:ok, counts} ->
-          total = counts |> Map.values() |> Enum.sum()
-
-          blended =
-            Map.new(base, fn {level, mass} ->
-              {level, (k * mass + strength * counts[level]) / (k + strength * total)}
-            end)
-
-          {comparison.field, distribution(blended)}
-
-        :error ->
-          {comparison.field, base}
+        {:ok, counts} -> {comparison.field, blend(base, counts, strength, k)}
+        :error -> {comparison.field, base}
       end
     end)
+  end
+
+  # The built-in defaults merged with `m_init`, floored and normalized.
+  defp base_m(comparison, supplied) do
+    agreements =
+      comparison
+      |> non_null()
+      |> Enum.reject(&(&1.name == :else))
+      |> Map.new(&{&1.name, initial_mass(&1)})
+
+    defaults = Map.put(agreements, :else, max(1 - Enum.sum(Map.values(agreements)), @floor))
+    validate_initial_m!(supplied, defaults)
+    distribution(Map.merge(defaults, supplied))
+  end
+
+  defp blend(base, counts, strength, k) do
+    total = counts |> Map.values() |> Enum.sum()
+
+    base
+    |> Map.new(fn {level, mass} ->
+      {level, (k * mass + strength * counts[level]) / (k + strength * total)}
+    end)
+    |> distribution()
   end
 
   @doc """
@@ -351,8 +355,7 @@ defmodule PatientMatching.Trainer do
     unless is_number(base_weight) and base_weight > 0,
       do: raise(ArgumentError, "m_prior_base_weight must be a positive number")
 
-    message = "m_prior must map comparison fields to non-null level names with nonnegative counts"
-    unless is_map(raw), do: raise(ArgumentError, message)
+    unless is_map(raw), do: raise(ArgumentError, @m_prior_message)
 
     levels_by_field =
       Map.new(comparisons, fn comparison ->
@@ -361,13 +364,9 @@ defmodule PatientMatching.Trainer do
 
     totals =
       Map.new(raw, fn {field, counts} ->
-        valid? =
-          is_map(counts) and Map.has_key?(levels_by_field, field) and
-            Enum.all?(counts, fn {level, count} ->
-              level in levels_by_field[field] and is_number(count) and count >= 0
-            end)
+        unless valid_counts?(counts, Map.get(levels_by_field, field)),
+          do: raise(ArgumentError, @m_prior_message)
 
-        unless valid?, do: raise(ArgumentError, message)
         {field, counts |> Map.values() |> Enum.sum()}
       end)
 
@@ -383,6 +382,15 @@ defmodule PatientMatching.Trainer do
       base_weight: base_weight * 1.0
     }
   end
+
+  # `levels` is nil when the field is not a comparison name.
+  defp valid_counts?(counts, levels) when is_map(counts) and is_list(levels),
+    do:
+      Enum.all?(counts, fn {level, count} ->
+        level in levels and is_number(count) and count >= 0
+      end)
+
+  defp valid_counts?(_counts, _levels), do: false
 
   @doc """
   EM over pattern counts. Estimates m for the comparisons in `:fields`
