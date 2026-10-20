@@ -37,3 +37,6 @@ patient_matching-*.tar
 !/eval/data/population/
 !/eval/data/curated/
 !/eval/data/reference/
+
+# Local git worktrees
+/.worktrees/
