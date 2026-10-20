@@ -208,4 +208,154 @@ defmodule PatientMatching.EMTest do
       end
     end
   end
+
+  describe "m prior in the M-step" do
+    test "a large prior pins an estimated field to its proportions" do
+      model = TestModels.fixed()
+
+      r =
+        Trainer.estimate_m(
+          %{{:exact} => 100, {:jw_0_85} => 50, {:else} => 1000},
+          model,
+          model.config,
+          m_prior: %{family_name: %{exact: 3, jw_0_85: 1}},
+          m_prior_strength: 1.0e9
+        )
+
+      assert_in_delta r.parameters.family_name.exact.m, 0.75, 1.0e-5
+      assert_in_delta r.parameters.family_name.jw_0_85.m, 0.25, 1.0e-5
+    end
+
+    test "a one-count prior barely moves a converged estimate" do
+      {patterns, model, config} = four_field_fixture()
+      plain = Trainer.estimate_m(patterns, model, config)
+      primed = Trainer.estimate_m(patterns, model, config, m_prior: %{a: %{jw_0_85: 1}})
+      # Each direct call converges on its own; train/3's em_iters is a sum over sessions.
+      assert plain.trained.em_iters < config.em_max_iters
+      assert primed.trained.em_iters < config.em_max_iters
+
+      for {l, p} <- plain.parameters.a,
+          do: assert_in_delta(primed.parameters.a[l].m, p.m, 1.0e-3)
+    end
+
+    test "a prior on a field outside the session's fields changes nothing for it" do
+      {model, config} = two_field_model()
+      patterns = %{{:exact, :exact} => 100, {:else, :jw_0_85} => 200, {:else, :else} => 1000}
+
+      r =
+        Trainer.estimate_m(patterns, model, config,
+          fields: [:family_name],
+          m_prior: %{b: %{exact: 1000}},
+          m_prior_strength: 1.0e6
+        )
+
+      assert r.parameters.b == model.parameters.b
+    end
+
+    test "a field with no observations keeps its blended initial m" do
+      prior = %{b: %{exact: 1}}
+      {model, config} = two_field_model(m_prior: prior)
+      defaults = Trainer.initial_m(config).b
+      patterns = %{{:exact, :null} => 500, {:else, :null} => 500}
+
+      r = Trainer.estimate_m(patterns, model, config, m_prior: prior)
+      assert r.parameters.b == model.parameters.b
+
+      for {l, p} <- model.parameters.b do
+        assert abs(p.m - defaults[l]) <= 1 / 11
+        if defaults[l] > 1.0e-6, do: assert(p.m > 1.0e-6)
+      end
+
+      opts = [m_prior: prior, m_prior_strength: 1.0e9]
+      {model, config} = two_field_model(opts)
+      r = Trainer.estimate_m(patterns, model, config, opts)
+      assert r.parameters.b == model.parameters.b
+      assert_in_delta r.parameters.b.exact.m, 1.0, 1.0e-5
+      assert_in_delta r.parameters.b.jw_0_85.m, 0.0, 1.0e-5
+      assert_in_delta r.parameters.b.else.m, 0.0, 1.0e-5
+    end
+
+    test "the prior never enters lambda's numerator or denominator" do
+      model = TestModels.fixed()
+      config = %{model.config | em_max_iters: 1}
+      p = %{{:exact} => 100, {:jw_0_85} => 50, {:else} => 1000}
+      plain = Trainer.estimate_m(p, model, config)
+      primed = Trainer.estimate_m(p, model, config, m_prior: %{family_name: %{exact: 1.0e6}})
+      assert primed.trained.lambda_train == plain.trained.lambda_train
+    end
+
+    test "an unstable field reverts to the blended initial m" do
+      # Even a pinned exact m (0.8) is <= u (0.97), so the field is always unstable.
+      proportions = %{exact: 0.8, jw_0_85: 0.15, else: 0.05}
+      u = %{exact: 0.97, jw_0_85: 0.02, else: 0.01}
+      fixed = TestModels.fixed()
+      base = Trainer.initial_m(fixed.config).family_name
+
+      for {total, tolerance, target} <- [{1, 1 / 11, base}, {10_000, 2.0e-3, proportions}] do
+        prior = %{family_name: Map.new(proportions, fn {l, p} -> {l, p * total} end)}
+        m = Trainer.initial_m(fixed.config, %{}, m_prior: prior).family_name
+        params = Map.new(m, fn {l, mass} -> {l, %{m: mass, u: u[l]}} end)
+        model = %{fixed | parameters: %{family_name: params}}
+
+        r = Trainer.estimate_m(%{{:else} => 1000}, model, model.config, m_prior: prior)
+        assert r.trained.unstable
+        assert r.parameters == model.parameters
+
+        for {l, p} <- r.parameters.family_name,
+            do: assert_in_delta(p.m, target[l], tolerance)
+      end
+    end
+
+    test "estimate_m validates its prior" do
+      model = TestModels.fixed()
+
+      assert_raise ArgumentError, fn ->
+        Trainer.estimate_m(%{{:exact} => 1}, model, model.config,
+          m_prior: %{family_name: %{zzz: 1}}
+        )
+      end
+    end
+  end
+
+  # The fixture from the first EM test: four name fields with known m and u.
+  defp four_field_fixture do
+    m = %{
+      a: %{exact: 0.85, jw_0_85: 0.10, else: 0.05},
+      b: %{exact: 0.80, jw_0_85: 0.15, else: 0.05},
+      c: %{exact: 0.75, jw_0_85: 0.20, else: 0.05},
+      d: %{exact: 0.90, jw_0_85: 0.05, else: 0.05}
+    }
+
+    u = %{
+      a: %{exact: 0.05, jw_0_85: 0.10, else: 0.85},
+      b: %{exact: 0.03, jw_0_85: 0.12, else: 0.85},
+      c: %{exact: 0.02, jw_0_85: 0.08, else: 0.90},
+      d: %{exact: 0.08, jw_0_85: 0.12, else: 0.80}
+    }
+
+    comparisons =
+      for field <- [:a, :b, :c, :d], do: %{TestModels.name_comparison() | field: field}
+
+    config = Config.new(comparisons: comparisons)
+    model = model_from(config, Trainer.initial_m(config), u, 0.15)
+    {Synthetic.patterns(m, u, 0.15), model, config}
+  end
+
+  # :family_name and a second name comparison on :b, both with the fixed model's u.
+  defp two_field_model(prior_opts \\ []) do
+    comparisons = [TestModels.name_comparison(), %{TestModels.name_comparison() | field: :b}]
+    config = Config.new(comparisons: comparisons)
+    u = %{exact: 0.1, jw_0_85: 0.2, else: 0.7}
+    initial = Trainer.initial_m(config, %{}, prior_opts)
+    {model_from(config, initial, %{family_name: u, b: u}, 0.1), config}
+  end
+
+  defp model_from(config, initial, u, lambda) do
+    params =
+      Map.new(initial, fn {f, masses} ->
+        {f, Map.new(masses, fn {l, mass} -> {l, %{m: mass, u: u[f][l]}} end)}
+      end)
+
+    %Model{config: config, comparisons: config.comparisons, lambda: lambda, parameters: params}
+  end
 end

@@ -11,6 +11,7 @@ defmodule PatientMatching.Trainer do
   """
   def train(records, config, opts \\ []) do
     config = Config.validate!(config)
+    prior = prior!(config.comparisons, opts)
     records = Blocking.prepare(records, config.placeholders, config.strip_mrn_leading_zeros)
     n = length(records)
     if n < 2, do: raise(ArgumentError, "training requires at least 2 records, got #{n}")
@@ -32,7 +33,7 @@ defmodule PatientMatching.Trainer do
       end
 
     u = estimate_u_prepared(records, config, deterministic)
-    m = initial_m(config, Keyword.get(opts, :m_init, %{}))
+    m = initial_m(config, Keyword.get(opts, :m_init, %{}), opts)
 
     parameters =
       Map.new(m, fn {field, levels} ->
@@ -50,26 +51,30 @@ defmodule PatientMatching.Trainer do
         unstable: false,
         em_iters: 0,
         tf_records: n,
-        lambda_train: []
+        lambda_train: [],
+        m_prior: prior.totals,
+        m_prior_strength: prior.strength,
+        m_prior_base_weight: prior.base_weight
       }
     }
 
     deterministic = MapSet.new(deterministic)
+    prior_opts = Keyword.take(opts, [:m_prior, :m_prior_strength])
 
     sessions
     |> Enum.reject(&(&1.pairs == []))
-    |> Enum.map(fn session ->
-      hits = Enum.count(session.pairs, &MapSet.member?(deterministic, &1))
-      start = clamp_train(hits / length(session.pairs) / config.lambda_recall)
-
-      patterns = pattern_counts_prepared(records, session.pairs, config)
-
-      %{
-        estimated: session.fields,
-        model: estimate_m(patterns, model, config, fields: session.fields, lambda_train: start)
-      }
-    end)
+    |> Enum.map(&run_session(&1, records, model, config, deterministic, prior_opts))
     |> combine_sessions(model, config)
+  end
+
+  # EM for one training session, starting from its share of deterministic pairs.
+  defp run_session(session, records, model, config, deterministic, prior_opts) do
+    hits = Enum.count(session.pairs, &MapSet.member?(deterministic, &1))
+    start = clamp_train(hits / length(session.pairs) / config.lambda_recall)
+    patterns = pattern_counts_prepared(records, session.pairs, config)
+    opts = [fields: session.fields, lambda_train: start] ++ prior_opts
+
+    %{estimated: session.fields, model: estimate_m(patterns, model, config, opts)}
   end
 
   # Fields a blocking rule conditions on can't be estimated from its pairs:
@@ -385,10 +390,17 @@ defmodule PatientMatching.Trainer do
   starts at `:lambda_train` (default: the model's lambda). u, the model's
   prediction lambda, and the m of fields outside `:fields` stay fixed. Nulls
   are excluded from each field's denominator; TF is not applied during EM.
+
+  `:m_prior` and `:m_prior_strength` are validated as in `train/3`. Each
+  M-step adds `strength * count` pseudo-counts to the expected match counts of
+  an estimated field that has non-null observations. They never enter
+  lambda's update. `:m_prior_base_weight` is validated but unused here: the
+  blended start arrives through `model.parameters`.
   """
   def estimate_m(patterns, model, config, opts \\ []) do
     fields = Keyword.get(opts, :fields, Enum.map(config.comparisons, & &1.field))
     lambda_train = Keyword.get(opts, :lambda_train, model.lambda)
+    scaled = scaled_prior(config.comparisons, fields, opts)
 
     initial =
       Map.new(model.parameters, fn {field, params} ->
@@ -404,7 +416,8 @@ defmodule PatientMatching.Trainer do
       end)
       |> Enum.reject(fn {observed, _} -> observed == [] end)
 
-    {estimated, lambda_train, iters} = em(patterns, initial, lambda_train, model, config, 0)
+    {estimated, lambda_train, iters} =
+      em(patterns, initial, lambda_train, model, config, scaled, 0)
 
     {estimated, unstable} =
       Enum.map_reduce(active, false, fn comparison, unstable ->
@@ -443,10 +456,22 @@ defmodule PatientMatching.Trainer do
     }
   end
 
-  defp em(_patterns, masses, lambda, _model, config, iters) when iters >= config.em_max_iters,
-    do: {masses, lambda, iters}
+  # Active prior counts times strength, restricted to the session's fields.
+  defp scaled_prior(comparisons, fields, opts) do
+    %{prior: prior, strength: strength} = prior!(comparisons, opts)
 
-  defp em(patterns, masses, lambda, model, config, iters) do
+    prior
+    |> Map.take(fields)
+    |> Map.new(fn {field, counts} ->
+      {field, Map.new(counts, fn {level, count} -> {level, strength * count} end)}
+    end)
+  end
+
+  defp em(_patterns, masses, lambda, _model, config, _scaled, iters)
+       when iters >= config.em_max_iters,
+       do: {masses, lambda, iters}
+
+  defp em(patterns, masses, lambda, model, config, scaled, iters) do
     counts =
       Map.new(masses, fn {field, levels} ->
         {field, Map.new(levels, fn {name, _} -> {name, 0.0} end)}
@@ -474,8 +499,7 @@ defmodule PatientMatching.Trainer do
 
     updated =
       Map.new(counts, fn {field, levels} ->
-        {field,
-         if(Enum.sum(Map.values(levels)) == 0, do: masses[field], else: distribution(levels))}
+        {field, m_step(levels, masses[field], Map.get(scaled, field))}
       end)
 
     lambda_next = if total == 0, do: lambda, else: clamp_train(matched / total)
@@ -484,7 +508,23 @@ defmodule PatientMatching.Trainer do
 
     if Enum.max(change) < config.em_tol,
       do: {updated, lambda_next, iters + 1},
-      else: em(patterns, updated, lambda_next, model, config, iters + 1)
+      else: em(patterns, updated, lambda_next, model, config, scaled, iters + 1)
+  end
+
+  # A field without observations keeps its masses; the prior is not counted
+  # as an observation. With no prior the expected counts go straight to
+  # distribution/1, which keeps results bit-identical to training without one.
+  defp m_step(levels, masses, prior) do
+    cond do
+      Enum.sum(Map.values(levels)) == 0 ->
+        masses
+
+      is_nil(prior) ->
+        distribution(levels)
+
+      true ->
+        levels |> Map.merge(prior, fn _, count, extra -> count + extra end) |> distribution()
+    end
   end
 
   defp observed_levels(pattern, comparisons, fields) do

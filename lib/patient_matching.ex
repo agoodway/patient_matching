@@ -97,6 +97,35 @@ defmodule PatientMatching do
   TF is count(value) / total training records; nil values receive no count.
   Training raises `ArgumentError` for duplicate ids, fewer than two records,
   missing comparisons, or zero training candidates.
+
+  ## m prior
+
+  Reviewer label counts can steer m through three options:
+
+    * `:m_prior` (default `%{}`) - comparison name => non-null level =>
+      nonnegative count, e.g. `%{given_name: %{exact: 40, nickname: 6}}`.
+      Missing levels count 0.
+    * `:m_prior_strength` (default `1.0`) - nonnegative multiplier on the
+      counts. A field is active when its total count times strength is above 0.
+    * `:m_prior_base_weight` (default `10.0`) - positive weight `k` of the
+      default start against the counts.
+
+  An active field starts EM from a blend of its base m (the defaults merged
+  with `:m_init`) and the counts, normalized with the usual floor:
+
+      (k * base[level] + strength * count[level]) / (k + strength * total)
+
+  In each EM session that estimates the field and observes it (non-null
+  levels), every M-step adds `strength * count` pseudo-counts to the field's
+  expected match counts. The prior never enters lambda's update, so lambda
+  moves only through m. A field that becomes unstable reverts to its blended
+  start. With no active prior, the parameters are bit-identical to training
+  without these options. Invalid options raise `ArgumentError` before
+  training starts.
+
+  `model.trained` records `:m_prior` (field => raw total count before
+  strength, only for nonzero totals), `:m_prior_strength` and
+  `:m_prior_base_weight`, both floats.
   """
   def train(records, config, opts \\ []), do: Trainer.train(records, config, opts)
 

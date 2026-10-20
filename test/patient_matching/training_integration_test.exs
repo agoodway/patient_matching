@@ -139,4 +139,58 @@ defmodule PatientMatching.TrainingIntegrationTest do
     assert length(sampled.pairs) == 45
     assert sampled.dropped_blocks == 0
   end
+
+  describe "m prior" do
+    setup do
+      {:ok,
+       config: Presets.patient_mpi(u_sample_size: 500),
+       records: Synthetic.patients(30, 0.2) |> Synthetic.unlabeled()}
+    end
+
+    test "empty prior and zero strength train bit-identical parameters", %{
+      config: config,
+      records: records
+    } do
+      plain = PatientMatching.train(records, config)
+      assert PatientMatching.train(records, config, m_prior: %{}).parameters == plain.parameters
+
+      zero =
+        PatientMatching.train(records, config,
+          m_prior: %{given_name: %{exact: 40, nickname: 6}},
+          m_prior_strength: 0
+        )
+
+      assert zero.parameters == plain.parameters
+    end
+
+    test "train records prior metadata", %{config: config, records: records} do
+      model =
+        PatientMatching.train(records, config,
+          m_prior: %{given_name: %{exact: 40, nickname: 6, jw_0_92: 3, else: 1}, sex: %{exact: 0}},
+          m_prior_strength: 2
+        )
+
+      assert model.trained.m_prior == %{given_name: 50}
+      assert model.trained.m_prior_strength === 2.0
+      assert model.trained.m_prior_base_weight === 10.0
+      plain = PatientMatching.train(records, config)
+
+      assert {plain.trained.m_prior, plain.trained.m_prior_strength,
+              plain.trained.m_prior_base_weight} == {%{}, 1.0, 10.0}
+    end
+
+    test "train rejects an invalid prior before training", %{config: config, records: records} do
+      assert_raise ArgumentError, fn ->
+        PatientMatching.train(records, config, m_prior: %{zip: %{exact: 1}})
+      end
+
+      assert_raise ArgumentError, fn ->
+        PatientMatching.train(records, config, m_prior_strength: -1)
+      end
+
+      assert_raise ArgumentError, fn ->
+        PatientMatching.train(records, config, m_prior_base_weight: 0)
+      end
+    end
+  end
 end
