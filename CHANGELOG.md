@@ -1,6 +1,25 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
+
+### Supervised m prior
+
+- `train/3` accepts `:m_prior` (field => level => count), `:m_prior_strength`
+  (>= 0, default 1.0) and `:m_prior_base_weight` (> 0, default 10.0). The
+  prior blends into the starting m and adds pseudo-counts to each M-step in
+  sessions that estimate and observe the field. Lambda moves only through m;
+  unstable fields revert to the blended start.
+- New public `PatientMatching.comparison_signature/1` (config or model).
+- `explain/3` returns one level per comparison, in config order, including
+  nulls, even under an MRN override.
+- `model.trained` and dumps carry `m_prior`, `m_prior_strength` and
+  `m_prior_base_weight`. Older dumps still load with `%{}`, 1.0 and 10.0.
+- Versioning rule: any change to a matcher's behaviour, even one that keeps
+  the same level name, bumps the minor version. Consumers key stored level
+  counts on (comparison signature, library version). The matcher changes
+  listed below also change behaviour, hence the minor bump.
+
+### Earlier changes
 
 The initial matching-policy improvements were measured by the evaluation suite (`eval/`, dev only). On its synthetic
 Houston-area population (9,015 records, 6 sources), enterprise dedupe went

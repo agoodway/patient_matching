@@ -216,7 +216,42 @@ remainder. Unknown custom levels start at 0.5. Override masses with
 `m_init: %{field => %{level => mass}}`. An all-null `u` distribution starts
 uniform; absent non-null EM observations preserve initial `m`.
 `model.trained` reports `lambda_source`, the per-session `lambda_train`,
-`em_iters`, `unstable` and `tf_records`.
+`em_iters`, `unstable` and `tf_records`, plus `m_prior`, `m_prior_strength`
+and `m_prior_base_weight` (see below).
+
+### Supervised m prior
+
+Reviewer label counts can steer m instead of leaving it to EM alone:
+
+```elixir
+PatientMatching.train(records, config,
+  m_prior: %{given_name: %{exact: 40, nickname: 6, jw_0_92: 3, else: 1}},
+  m_prior_strength: 1.0
+)
+```
+
+`:m_prior` maps field => non-null level => count (missing levels count 0).
+`:m_prior_strength` (>= 0, default 1.0) scales the counts;
+`:m_prior_base_weight` (`k` > 0, default 10.0) weights the default start.
+
+- **Blended start.** An active field (total count times strength above 0)
+  starts at `distribution((k*base + strength*prior) / (k + strength*total))`,
+  where `base` is the defaults merged with `m_init`.
+- **M-step.** Each M-step adds `strength * prior` pseudo-counts to the
+  expected match counts, only in sessions that estimate the field and observe it.
+- **Lambda** moves only through m; the prior never enters its update.
+- **Unstable fields** revert to the blended start, not the defaults.
+- **`trained` keys.** `m_prior` (raw totals before strength, nonzero fields
+  only), `m_prior_strength` and `m_prior_base_weight`. Dumps include them;
+  older dumps load with `%{}`, 1.0 and 10.0.
+
+`PatientMatching.comparison_signature/1` (config or model) returns the
+ordered comparison signature. `explain/3` returns one level per comparison,
+in config order, including nulls, even under an MRN override.
+
+Any change to a matcher's behaviour, even one that keeps the same level name,
+bumps the minor version. Consumers key stored level counts on (comparison
+signature, library version).
 
 Training raises `ArgumentError` for duplicate ids, fewer than two records,
 missing comparisons, or no training candidates.
@@ -268,6 +303,11 @@ mix precommit
 format validation, strict Credo (including ExDNA duplication checks and ExSlop),
 Doctor documentation coverage, Sobelow security analysis, Dialyzer, and the test
 suite. `mix precommit` runs the same checks. Both select the test environment.
+
+Merging a matcher change? Check:
+
+- [ ] Bump the minor version in `mix.exs` and note it in `CHANGELOG.md`, even
+  if level names are unchanged.
 
 Quality tools are development/test dependencies with `runtime: false`. Their
 current ExDNA/ExSlop versions require Elixir 1.18 or later for development;
