@@ -355,7 +355,7 @@ defmodule PatientMatching.Trainer do
     unless is_number(base_weight) and base_weight > 0,
       do: raise(ArgumentError, "m_prior_base_weight must be a positive number")
 
-    unless is_map(raw), do: raise(ArgumentError, @m_prior_message)
+    unless is_map(raw) and not is_struct(raw), do: raise(ArgumentError, @m_prior_message)
 
     levels_by_field =
       Map.new(comparisons, fn comparison ->
@@ -384,11 +384,12 @@ defmodule PatientMatching.Trainer do
   end
 
   # `levels` is nil when the field is not a comparison name.
-  defp valid_counts?(counts, levels) when is_map(counts) and is_list(levels),
-    do:
-      Enum.all?(counts, fn {level, count} ->
-        level in levels and is_number(count) and count >= 0
-      end)
+  defp valid_counts?(counts, levels)
+       when is_map(counts) and not is_struct(counts) and is_list(levels),
+       do:
+         Enum.all?(counts, fn {level, count} ->
+           level in levels and is_number(count) and count >= 0
+         end)
 
   defp valid_counts?(_counts, _levels), do: false
 

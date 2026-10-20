@@ -85,7 +85,9 @@ defmodule PatientMatching do
 
   @doc """
   Trains from one unlabeled file. Options: `:lambda` (fixed prior, clamped to
-  1e-9..0.5) and `:m_init` (field => level => initial mass).
+  1e-9..0.5) and `:m_init` (field => level => initial mass). Supervised m
+  prior options `:m_prior`, `:m_prior_strength` and `:m_prior_base_weight`
+  are described under "m prior" below.
 
   Initial agreement masses follow the brief: strong 0.9, moderate 0.7,
   year-month 0.5, else the remainder. When their sum exceeds one, masses

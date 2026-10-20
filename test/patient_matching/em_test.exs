@@ -169,6 +169,17 @@ defmodule PatientMatching.EMTest do
              ) == %{prior: %{}, totals: %{family_name: 3}, strength: 0.0, base_weight: 4.0}
     end
 
+    test "struct priors raise the fixed message without values", %{config: config} do
+      for opts <- [
+            [m_prior: ~D[2020-01-01]],
+            [m_prior: %{family_name: ~D[2020-01-01]}]
+          ] do
+        error = assert_raise ArgumentError, fn -> Trainer.prior!(config.comparisons, opts) end
+        assert error.message =~ "m_prior must map comparison fields"
+        refute error.message =~ "2020"
+      end
+    end
+
     test "invalid priors raise fixed messages without values", %{config: config} do
       comparisons = config.comparisons
 
