@@ -1,7 +1,18 @@
 defmodule PatientMatching.ScoringTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
-  alias PatientMatching.{Comparators, Comparison, Config, Level, Normalize, Scorer, TestModels}
+
+  alias PatientMatching.{
+    Comparators,
+    Comparison,
+    Config,
+    Level,
+    Normalize,
+    Presets,
+    Scorer,
+    Synthetic,
+    TestModels
+  }
 
   test "ordered levels, null skipping and hand-calculated base-two weights" do
     model = TestModels.fixed()
@@ -120,5 +131,23 @@ defmodule PatientMatching.ScoringTest do
     assert Comparison.run(comparison, %{normalized: %{family_name: "A"}}, %{
              normalized: %{family_name: "B"}
            }).name == :else
+  end
+
+  test "explain levels cover every configured comparison, with and without an MRN override" do
+    config = Presets.patient_mpi(u_sample_size: 1000)
+    records = Synthetic.patients(30, 0.2) |> Synthetic.unlabeled()
+    model = PatientMatching.train(records, config)
+    expected = Enum.map(config.comparisons, & &1.field)
+
+    left = %{id: 1, source: "clinic", mrn: "123", family_name: "Smith", given_name: nil}
+    right = %{id: 2, source: "clinic", mrn: "123", family_name: "Smith", given_name: nil}
+
+    for {l, r} <- [{left, right}, {Map.delete(left, :mrn), Map.delete(right, :mrn)}] do
+      result = PatientMatching.explain(l, r, model)
+      assert Enum.map(result.levels, & &1.field) == expected
+      assert Enum.any?(result.levels, &(&1.m == nil))
+    end
+
+    assert PatientMatching.explain(left, right, model).reason in [:mrn, :mrn_conflict]
   end
 end

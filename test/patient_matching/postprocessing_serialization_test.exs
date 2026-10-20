@@ -97,4 +97,75 @@ defmodule PatientMatching.PostprocessingSerializationTest do
     assert precision >= 0.95, "precision was #{precision}"
     assert result.clusters != []
   end
+
+  describe "m prior metadata and signature" do
+    setup do
+      config = Presets.patient_mpi(u_sample_size: 1000)
+      records = Synthetic.patients(30, 0.2) |> Synthetic.unlabeled()
+      %{config: config, records: records}
+    end
+
+    test "dump/load preserves prior metadata", %{config: config, records: records} do
+      model =
+        PatientMatching.train(records, config,
+          m_prior: %{given_name: %{exact: 40, nickname: 6}},
+          m_prior_strength: 2,
+          m_prior_base_weight: 5
+        )
+
+      loaded = PatientMatching.load(PatientMatching.dump(model), config)
+      assert loaded.trained == model.trained
+      assert loaded.trained.m_prior == %{given_name: 46}
+      assert loaded.trained.m_prior_strength === 2.0
+    end
+
+    test "0.1.0-style dumps without prior keys load with defaults", %{
+      config: config,
+      records: records
+    } do
+      data = Jason.decode!(PatientMatching.dump(PatientMatching.train(records, config)))
+
+      old =
+        update_in(
+          data["trained"],
+          &Map.drop(&1, ["m_prior", "m_prior_strength", "m_prior_base_weight"])
+        )
+
+      loaded = PatientMatching.load(Jason.encode!(old), config)
+
+      assert {loaded.trained.m_prior, loaded.trained.m_prior_strength,
+              loaded.trained.m_prior_base_weight} == {%{}, 1.0, 10.0}
+    end
+
+    test "load rejects bad stored prior metadata", %{config: config, records: records} do
+      data = Jason.decode!(PatientMatching.dump(PatientMatching.train(records, config)))
+
+      for bad <- [
+            %{"m_prior" => %{"zzz" => 1}},
+            %{"m_prior" => %{"given_name" => -1}},
+            %{"m_prior_strength" => -1},
+            %{"m_prior_base_weight" => 0}
+          ] do
+        json = Jason.encode!(update_in(data["trained"], &Map.merge(&1, bad)))
+
+        assert_raise ArgumentError, "invalid model dump or incompatible comparison config", fn ->
+          PatientMatching.load(json, config)
+        end
+      end
+    end
+
+    test "comparison_signature matches the dump", %{config: config, records: records} do
+      model = PatientMatching.train(records, config)
+      sig = Jason.decode!(PatientMatching.dump(model))["comparisons"]
+      assert PatientMatching.comparison_signature(model) == sig
+      assert PatientMatching.comparison_signature(config) == sig
+
+      assert_raise ArgumentError, fn ->
+        PatientMatching.load(PatientMatching.dump(model), %{
+          config
+          | comparisons: tl(config.comparisons)
+        })
+      end
+    end
+  end
 end

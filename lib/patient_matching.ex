@@ -189,8 +189,20 @@ defmodule PatientMatching do
   non-nil source/MRN yields probability 1, weight 50, reason `:mrn`, unless a
   guard fires (reason `:mrn_conflict`); explanation levels remain populated to
   show the statistical evidence despite that override.
+
+  `levels` always has exactly one entry per configured comparison, in
+  configuration order, including null levels (`m: nil`), even when an MRN
+  override applies.
   """
   def explain(left, right, model), do: Explain.explain(left, right, model)
+
+  @doc """
+  Returns the comparison signature (field, fields and ordered levels with
+  `name`, `tf` and `null`, all string keys and values) that `dump/1` writes
+  under `"comparisons"` and `load/2` checks. Accepts a config or a model.
+  """
+  def comparison_signature(%Config{} = config), do: Model.comparison_signature(config)
+  def comparison_signature(%Model{} = model), do: Model.comparison_signature(model)
 
   @doc "Greedy one-to-one assignment by descending probability. Neither id is reused; this is not Hungarian assignment."
   def assign(pairs), do: Assign.assign(pairs)

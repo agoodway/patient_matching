@@ -17,7 +17,7 @@ defmodule PatientMatching.Model do
       version: 3,
       policies: policies(model.config),
       lambda: model.lambda,
-      comparisons: signature(model.comparisons),
+      comparisons: comparison_signature(model),
       parameters: model.parameters,
       trained: model.trained,
       term_frequencies:
@@ -42,7 +42,7 @@ defmodule PatientMatching.Model do
       comparisons: config.comparisons,
       parameters: load_parameters(data["parameters"], config.comparisons),
       term_frequencies: load_frequencies(data["term_frequencies"], config),
-      trained: load_training(data["trained"])
+      trained: load_training(data["trained"], config.comparisons)
     }
   rescue
     _error in [
@@ -67,7 +67,7 @@ defmodule PatientMatching.Model do
       _ -> raise ArgumentError, "unsupported model version"
     end
 
-    true = data["comparisons"] == signature(config.comparisons)
+    true = data["comparisons"] == comparison_signature(config)
     lambda = data["lambda"]
     true = is_number(lambda) and lambda >= 1.0e-9 and lambda <= 0.5
   end
@@ -134,7 +134,7 @@ defmodule PatientMatching.Model do
     values
   end
 
-  defp load_training(raw) do
+  defp load_training(raw, comparisons) do
     source =
       case raw["lambda_source"] do
         "fixed" -> :fixed
@@ -146,19 +146,55 @@ defmodule PatientMatching.Model do
     lambda_train = Map.get(raw, "lambda_train", [])
     true = is_list(lambda_train) and Enum.all?(lambda_train, &probability?/1)
 
+    {m_prior, strength, base_weight} = load_m_prior(raw, comparisons)
+
     %{
       lambda_source: source,
       unstable: raw["unstable"],
       em_iters: raw["em_iters"],
       tf_records: raw["tf_records"],
-      lambda_train: Enum.map(lambda_train, &(&1 * 1.0))
+      lambda_train: Enum.map(lambda_train, &(&1 * 1.0)),
+      m_prior: m_prior,
+      m_prior_strength: strength,
+      m_prior_base_weight: base_weight
     }
+  end
+
+  defp load_m_prior(raw, comparisons) do
+    stored = Map.get(raw, "m_prior", %{})
+    strength = Map.get(raw, "m_prior_strength", 1.0)
+    base_weight = Map.get(raw, "m_prior_base_weight", 10.0)
+
+    true = is_map(stored)
+    true = is_number(strength) and strength >= 0
+    true = is_number(base_weight) and base_weight > 0
+
+    m_prior =
+      Map.new(stored, fn {key, total} ->
+        true = is_number(total) and total >= 0
+        comparison = Enum.find(comparisons, &(Atom.to_string(&1.field) == key))
+        true = comparison != nil
+        {comparison.field, total}
+      end)
+
+    {m_prior, strength * 1.0, base_weight * 1.0}
   end
 
   defp field_names(comparisons),
     do: comparisons |> Enum.map(&Atom.to_string(&1.field)) |> Enum.sort()
 
-  defp signature(comparisons) do
+  @doc """
+  Returns the ordered comparison signature that `dump/1` writes under
+  `"comparisons"`, for a `%Config{}` or a `%Model{}`. Keys and values are strings
+  (plus the `tf` and `null` booleans).
+  """
+  def comparison_signature(%__MODULE__{comparisons: comparisons}),
+    do: comparison_signature(comparisons)
+
+  def comparison_signature(%Config{comparisons: comparisons}),
+    do: comparison_signature(comparisons)
+
+  def comparison_signature(comparisons) when is_list(comparisons) do
     Enum.map(comparisons, fn c ->
       %{
         "field" => Atom.to_string(c.field),
