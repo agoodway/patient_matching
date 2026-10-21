@@ -28,7 +28,7 @@ defmodule PatientMatching.Guards do
       adjacent-digit transposition (1969 / 1996) or a one-digit typo within
       a decade (1987 / 1983) explains it.
     * `:generation_suffix` (10) - different suffixes (JR / SR, II / III).
-    * `:twin` (10) - children with the same birth date and family name, but
+    * `:twin` (10) - children with birth dates at most one day apart and the same family name, but
       given names that are not variants of each other.
     * `:sibling` (10) - the same family name with unrelated given names and
       incompatible birth dates, and no shared full SSN. Siblings share
@@ -43,6 +43,9 @@ defmodule PatientMatching.Guards do
 
   Too little to auto-match on (penalty 0, review only):
 
+    * `:household_lookalike` - similar but different, nonvariant given names,
+      the same surname, birth dates more than one day apart and a shared phone
+      or street/ZIP.
     * `:adult_name_ambiguity` - adults with the same DOB and family name but
       unrelated given names. An unfamiliar alias remains possible. A shared
       full SSN clears this guard. A one-edit name typo also clears it when
@@ -76,6 +79,7 @@ defmodule PatientMatching.Guards do
       {:generation_suffix, &generation_suffix?/2, 10.0},
       {:twin, &child_twin?/2, 10.0},
       {:sibling, &sibling?/2, 10.0},
+      {:household_lookalike, &household_lookalike?/2, 0.0},
       {:adult_name_ambiguity, &adult_name_ambiguity?/2, 0.0},
       {:newborn_identity, &newborn_identity?/2, 0.0},
       {:shared_ssn_conflict, &shared_ssn_conflict?/2, 0.0},
@@ -194,8 +198,27 @@ defmodule PatientMatching.Guards do
       not (Comparators.exact?(a[:ssn], b[:ssn]) and adult?(a[:dob]))
   end
 
-  @doc "Children with differing given names and the same birth date may be twins."
-  def child_twin?(a, b), do: twin?(a, b) and not adult?(a[:dob])
+  @doc "Children with differing given names and birth dates at most one day apart may be twins."
+  def child_twin?(a, b) do
+    Comparators.within_days?(a[:dob], b[:dob], 1) and same_family?(a, b) and
+      different_given?(a[:given_name], b[:given_name]) and not adult?(a[:dob])
+  end
+
+  @doc "Similar, nonvariant given names with distinct dates and shared household contact require review."
+  def household_lookalike?(a, b) do
+    same_family?(a, b) and similar_nonvariant_given?(a[:given_name], b[:given_name]) and
+      a[:dob] != nil and b[:dob] != nil and
+      not Comparators.within_days?(a[:dob], b[:dob], 1) and
+      (Comparators.exact?(a[:phone], b[:phone]) or
+         (Comparators.exact?(a[:street], b[:street]) and Comparators.exact?(a[:zip], b[:zip])))
+  end
+
+  defp similar_nonvariant_given?(a, b) when is_binary(a) and is_binary(b) do
+    a != b and not Comparators.nickname?(a, b) and not Comparators.name_part?(a, b) and
+      not Comparators.initial?(a, b) and Comparators.jaro_winkler(a, b) >= 0.85
+  end
+
+  defp similar_nonvariant_given?(_, _), do: false
 
   @doc "Same family name, unrelated given names and incompatible birth dates, without a shared full SSN."
   def sibling?(a, b) do

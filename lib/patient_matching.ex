@@ -87,7 +87,10 @@ defmodule PatientMatching do
   Trains from one unlabeled file. Options: `:lambda` (fixed prior, clamped to
   1e-9..0.5) and `:m_init` (field => level => initial mass). Supervised m
   prior options `:m_prior`, `:m_prior_strength` and `:m_prior_base_weight`
-  are described under "m prior" below.
+  are described under "m prior" below. `m_estimation: :prior` requires
+  `:lambda`, skips EM and uses the blended initial m without requiring
+  training candidates; u and term frequencies are estimated normally.
+  The default `m_estimation: :em` runs training sessions.
 
   Initial agreement masses follow the brief: strong 0.9, moderate 0.7,
   year-month 0.5, else the remainder. When their sum exceeds one, masses
@@ -98,7 +101,7 @@ defmodule PatientMatching do
 
   TF is count(value) / total training records; nil values receive no count.
   Training raises `ArgumentError` for duplicate ids, fewer than two records,
-  missing comparisons, or zero training candidates.
+  missing comparisons, or (in EM mode) zero training candidates.
 
   ## m prior
 
@@ -129,7 +132,17 @@ defmodule PatientMatching do
   strength, only for nonzero totals), `:m_prior_strength` and
   `:m_prior_base_weight`, both floats.
   """
+  # Prior-only mode requires fixed lambda and preserves the blended m start.
   def train(records, config, opts \\ []), do: Trainer.train(records, config, opts)
+
+  @doc "Returns a model with a fixed match prior, clamped to 1e-9..0.5 like train/3's :lambda."
+  def put_lambda(%PatientMatching.Model{} = model, lambda) do
+    %{
+      model
+      | lambda: PatientMatching.Trainer.clamp_lambda(lambda),
+        trained: Map.put(model.trained, :lambda_source, :fixed)
+    }
+  end
 
   @doc """
   Links two files and returns `matches`, `review`, `record_review`, `non_match_count`, and

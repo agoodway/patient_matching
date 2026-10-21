@@ -4,6 +4,26 @@ defmodule PatientMatching.GuardsTest do
 
   defp n(record), do: Normalize.record(Map.put(record, :id, 1)).normalized
 
+  test "child twins include adjacent dates while a same-child date error remains unguarded" do
+    a = %{given_name: "Alex", family_name: "Sample", dob: "2018-01-10", phone: "2025550101"}
+    assert Guards.child_twin?(n(a), n(%{a | given_name: "Robin", dob: "2018-01-11"}))
+    refute Guards.child_twin?(n(a), n(%{a | dob: "2018-01-11"}))
+  end
+
+  test "household lookalikes require similar nonvariant names, different dates and shared contact" do
+    a = %{given_name: "Arianna", family_name: "Sample", dob: "2018-01-10", phone: "2025550101"}
+    b = %{a | given_name: "Adrianna", dob: "2019-03-12"}
+    assert Guards.household_lookalike?(n(a), n(b))
+    refute Guards.household_lookalike?(n(a), n(%{b | phone: "2025550102"}))
+    refute Guards.household_lookalike?(n(a), n(%{b | given_name: "Arianna"}))
+    refute Guards.household_lookalike?(n(a), n(%{b | dob: "2018-01-11"}))
+
+    refute Guards.household_lookalike?(
+             n(%{a | given_name: "Robert"}),
+             n(%{b | given_name: "Bob"})
+           )
+  end
+
   test "SSN conflict ignores typos and ITIN/SSN changes" do
     refute Guards.ssn_conflict?(n(%{ssn: "212456789"}), n(%{ssn: "212456788"}))
     refute Guards.ssn_conflict?(n(%{ssn: "212456789"}), n(%{ssn: "212457689"}))

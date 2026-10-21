@@ -328,3 +328,24 @@ creates persistent datasets; `mix eval.validate` assesses integrity/coverage;
 bundle with `mix eval.gen --benchmark --out eval/data/benchmark`, then evaluate
 it independently with `mix eval.benchmark --datasets eval/data/benchmark`.
 Validation and evaluation never regenerate datasets. See [eval/README.md](eval/README.md).
+
+### Reference m without EM
+
+Use `PatientMatching.train(records, config, m_estimation: :prior,
+m_init: reference_m, lambda: 0.001)` on a deduplicated patient file. This mode
+requires a fixed `:lambda`, skips EM and does not require training candidates.
+It estimates u and term frequencies normally. With no `:m_prior`, m is exactly
+the default base merged with `:m_init`; counts blend into that base using the
+usual `:m_prior_strength` and `:m_prior_base_weight` options. Training metadata
+and dumps record `m_estimation: :prior` (the default mode is `:em`).
+
+`PatientMatching.put_lambda(model, 0.001)` returns a model with a new fixed
+prior, clamped to 1e-9..0.5, without retraining. Dump/load preserves the new
+prior and `trained.lambda_source: :fixed`; explanations use it immediately.
+
+The child twin guard includes birth dates at most one day apart. The household
+look-alike guard requires the same family name, similar but different given
+names that are not variants, birth dates more than one day apart, and an
+agreeing phone or street/ZIP. It caps probability below automatic matching.
+A same-child pair with an unchanged given name and a one-day date error keeps
+scoring normally.

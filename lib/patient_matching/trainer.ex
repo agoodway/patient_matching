@@ -12,6 +12,7 @@ defmodule PatientMatching.Trainer do
   """
   def train(records, config, opts \\ []) do
     config = Config.validate!(config)
+    mode = m_estimation!(opts)
     prior = prior!(config.comparisons, opts)
     records = Blocking.prepare(records, config.placeholders, config.strip_mrn_leading_zeros)
     n = length(records)
@@ -21,9 +22,13 @@ defmodule PatientMatching.Trainer do
       do: raise(ArgumentError, "training requires comparisons, got 0 for #{n} records")
 
     deterministic = deterministic_pairs(records, config)
-    sessions = Enum.map(config.training_blocking, &session(records, &1, config))
 
-    if Enum.all?(sessions, &(&1.pairs == [])),
+    sessions =
+      if mode == :em,
+        do: Enum.map(config.training_blocking, &session(records, &1, config)),
+        else: []
+
+    if mode == :em and Enum.all?(sessions, &(&1.pairs == [])),
       do: raise(ArgumentError, "0 training candidate pairs for #{n} records")
 
     {lambda, source} =
@@ -49,6 +54,7 @@ defmodule PatientMatching.Trainer do
       term_frequencies: term_frequencies_prepared(records, config),
       trained: %{
         lambda_source: source,
+        m_estimation: mode,
         unstable: false,
         em_iters: 0,
         tf_records: n,
@@ -62,10 +68,24 @@ defmodule PatientMatching.Trainer do
     deterministic = MapSet.new(deterministic)
     prior_opts = Keyword.take(opts, [:m_prior, :m_prior_strength])
 
-    sessions
-    |> Enum.reject(&(&1.pairs == []))
-    |> Enum.map(&run_session(&1, records, model, config, deterministic, prior_opts))
-    |> combine_sessions(model, config)
+    if mode == :prior do
+      model
+    else
+      sessions
+      |> Enum.reject(&(&1.pairs == []))
+      |> Enum.map(&run_session(&1, records, model, config, deterministic, prior_opts))
+      |> combine_sessions(model, config)
+    end
+  end
+
+  defp m_estimation!(opts) do
+    mode = Keyword.get(opts, :m_estimation, :em)
+    unless mode in [:em, :prior], do: raise(ArgumentError, "m_estimation must be :em or :prior")
+
+    if mode == :prior and not Keyword.has_key?(opts, :lambda),
+      do: raise(ArgumentError, "m_estimation :prior requires lambda")
+
+    mode
   end
 
   # EM for one training session, starting from its share of deterministic pairs.
@@ -155,10 +175,10 @@ defmodule PatientMatching.Trainer do
 
   defp clamp_train(value), do: min(0.99, max(@floor, value))
 
-  defp clamp_lambda(value) when is_number(value),
+  def clamp_lambda(value) when is_number(value),
     do: min(@max_lambda, max(@min_lambda, value * 1.0))
 
-  defp clamp_lambda(_), do: raise(ArgumentError, "lambda must be numeric")
+  def clamp_lambda(_), do: raise(ArgumentError, "lambda must be numeric")
 
   @doc "Uniform unordered pairs without replacement; a local RNG leaves caller state untouched."
   def sample_pairs(records, config),

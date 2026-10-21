@@ -148,7 +148,14 @@ defmodule PatientMatching.Model do
 
     {m_prior, strength, base_weight} = load_m_prior(raw, comparisons)
 
+    mode =
+      case Map.get(raw, "m_estimation", "em") do
+        "em" -> :em
+        "prior" -> :prior
+      end
+
     %{
+      m_estimation: mode,
       lambda_source: source,
       unstable: raw["unstable"],
       em_iters: raw["em_iters"],

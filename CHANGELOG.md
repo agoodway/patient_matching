@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0
+
+- Add prior-only m estimation (`m_estimation: :prior`) with fixed lambda,
+  preserving the blended m base while estimating u and term frequencies.
+- Add `PatientMatching.put_lambda/2` for adapting a stored model prior.
+- Record m estimation mode in training metadata and dumps.
+- Widen child twin dates to one day apart and add a review-only household
+  look-alike guard for similar, nonvariant names and shared contact.
+- Add planted evaluation pairs for both guards and a same-child date typo.
+- Full synthetic eval: enterprise precision 0.9971714791 -> 0.9974059663,
+  recall 0.9735358417 -> 0.9733057186, false automatic matches 24 -> 22;
+  golden scenarios 86/86 pass including all three new planted pairs.
+
 ## 0.2.0
 
 ### Supervised m prior

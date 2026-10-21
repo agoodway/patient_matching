@@ -1,6 +1,6 @@
 {
  "category": "household false-positive traps",
- "description": "Different people who share a household: surname, address, phone and sometimes SSN. Auto-merging any of these is an overlay — two patients' charts combined.",
+ "description": "Different people who share a household: surname, address, phone and sometimes SSN. Auto-merging any of these is an overlay \u2014 two patients' charts combined.",
  "cases": [
   {
    "id": "twins-different-names",
@@ -155,7 +155,7 @@
   {
    "id": "mother-daughter-same-year-month",
    "title": "Same name, DOB in the same month 30 years apart",
-   "why": "same_year_month is evaluated on full dates, so this should not fire — the trap is phone + names.",
+   "why": "same_year_month is evaluated on full dates, so this should not fire \u2014 the trap is phone + names.",
    "risk": "overlay",
    "expect": "not_match",
    "left": {
@@ -331,6 +331,81 @@
     "zip": "77038",
     "phone": "8325550104",
     "ssn": "631228190"
+   }
+  },
+  {
+   "id": "child-twin-adjacent-date",
+   "title": "Child twin with a one-day birth date difference",
+   "why": "Child twin with a one-day birth date difference",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "given_name": "Arianna",
+    "family_name": "Sample",
+    "dob": "2018-01-10",
+    "phone": "2025550101",
+    "zip": "77001",
+    "sex": "F",
+    "id": "L1"
+   },
+   "right": {
+    "given_name": "Robin",
+    "family_name": "Sample",
+    "dob": "2018-01-11",
+    "phone": "2025550101",
+    "zip": "77001",
+    "sex": "F",
+    "id": "R1"
+   }
+  },
+  {
+   "id": "household-similar-name",
+   "title": "Similar-name siblings sharing a phone",
+   "why": "Similar-name siblings sharing a phone",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "given_name": "Arianna",
+    "family_name": "Sample",
+    "dob": "2018-01-10",
+    "phone": "2025550101",
+    "zip": "77001",
+    "sex": "F",
+    "id": "L1"
+   },
+   "right": {
+    "given_name": "Adrianna",
+    "family_name": "Sample",
+    "dob": "2019-03-12",
+    "phone": "2025550101",
+    "zip": "77001",
+    "sex": "F",
+    "id": "R1"
+   }
+  },
+  {
+   "id": "same-child-adjacent-date",
+   "title": "Same child with one-day date error",
+   "why": "Same child with one-day date error",
+   "risk": "duplicate",
+   "expect": "match",
+   "left": {
+    "given_name": "Arianna",
+    "family_name": "Sample",
+    "dob": "2018-01-10",
+    "phone": "2025550101",
+    "zip": "77001",
+    "sex": "F",
+    "id": "L1"
+   },
+   "right": {
+    "given_name": "Arianna",
+    "family_name": "Sample",
+    "dob": "2018-01-11",
+    "phone": "2025550101",
+    "zip": "77001",
+    "sex": "F",
+    "id": "R1"
    }
   }
  ]
