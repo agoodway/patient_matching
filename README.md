@@ -349,3 +349,8 @@ names that are not variants, birth dates more than one day apart, and an
 agreeing phone or street/ZIP. It caps probability below automatic matching.
 A same-child pair with an unchanged given name and a one-day date error keeps
 scoring normally.
+
+Held-out households also require review when either record has an unnamed
+newborn label without an agreeing source/MRN, or when unrelated given names
+share a surname and contact and their birth dates differ by one edit but more
+than one day. An agreeing full SSN clears the latter guard.

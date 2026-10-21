@@ -46,12 +46,14 @@ defmodule PatientMatching.Guards do
     * `:household_lookalike` - similar but different, nonvariant given names,
       the same surname, birth dates more than one day apart and a shared phone
       or street/ZIP.
+    * `:household_name_conflict` - unrelated household names and a one-edit
+      birth date difference greater than one day, unless a full SSN agrees.
     * `:adult_name_ambiguity` - adults with the same DOB and family name but
       unrelated given names. An unfamiliar alias remains possible. A shared
       full SSN clears this guard. A one-edit name typo also clears it when
       both an SSN fragment and phone agree; household contact alone cannot
       disambiguate two real names separated by an edit.
-    * `:newborn_identity` - both records use newborn labels without an
+    * `:newborn_identity` - either record uses a newborn label without an
       agreeing MRN from the same source. Household contact cannot identify
       which baby a record belongs to.
     * `:shared_ssn_conflict` - a full SSN agrees, but unrelated given names
@@ -80,6 +82,7 @@ defmodule PatientMatching.Guards do
       {:twin, &child_twin?/2, 10.0},
       {:sibling, &sibling?/2, 10.0},
       {:household_lookalike, &household_lookalike?/2, 0.0},
+      {:household_name_conflict, &household_name_conflict?/2, 0.0},
       {:adult_name_ambiguity, &adult_name_ambiguity?/2, 0.0},
       {:newborn_identity, &newborn_identity?/2, 0.0},
       {:shared_ssn_conflict, &shared_ssn_conflict?/2, 0.0},
@@ -213,6 +216,16 @@ defmodule PatientMatching.Guards do
          (Comparators.exact?(a[:street], b[:street]) and Comparators.exact?(a[:zip], b[:zip])))
   end
 
+  @doc "Unrelated household names and a one-edit DOB difference require review unless a full SSN agrees."
+  def household_name_conflict?(a, b) do
+    same_family?(a, b) and different_given?(a[:given_name], b[:given_name]) and
+      Comparators.dob_one_edit?(a[:dob], b[:dob]) and
+      not Comparators.within_days?(a[:dob], b[:dob], 1) and
+      not Comparators.exact?(a[:ssn], b[:ssn]) and
+      (Comparators.exact?(a[:phone], b[:phone]) or
+         (Comparators.exact?(a[:street], b[:street]) and Comparators.exact?(a[:zip], b[:zip])))
+  end
+
   defp similar_nonvariant_given?(a, b) when is_binary(a) and is_binary(b) do
     a != b and not Comparators.nickname?(a, b) and not Comparators.name_part?(a, b) and
       not Comparators.initial?(a, b) and Comparators.jaro_winkler(a, b) >= 0.85
@@ -235,9 +248,9 @@ defmodule PatientMatching.Guards do
       Comparators.exact?(last4(a), last4(b)) and Comparators.exact?(a[:phone], b[:phone])
   end
 
-  @doc "Two unnamed newborns need a baby-specific source/MRN before auto-merging; household contact is insufficient."
+  @doc "An unnamed newborn needs a baby-specific source/MRN before auto-merging; household contact is insufficient."
   def newborn_identity?(a, b),
-    do: a[:newborn] == true and b[:newborn] == true and not same_mrn?(a, b)
+    do: (a[:newborn] == true or b[:newborn] == true) and not same_mrn?(a, b)
 
   @doc "A shared full SSN with unrelated names and incompatible DOBs can be borrowed."
   def shared_ssn_conflict?(a, b) do

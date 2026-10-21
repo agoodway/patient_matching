@@ -407,6 +407,56 @@
     "sex": "F",
     "id": "R1"
    }
+  },
+  {
+   "id": "single-newborn-placeholder",
+   "title": "single-newborn-placeholder",
+   "why": "Held-out household automatic match regression",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "given_name": "BB",
+    "family_name": "Sample",
+    "dob": "2017-04-27",
+    "phone": "2025550101",
+    "zip": "77001",
+    "sex": "F",
+    "id": "L1"
+   },
+   "right": {
+    "given_name": "Angela",
+    "family_name": "Sample",
+    "dob": "2017-04-27",
+    "phone": "2025550101",
+    "zip": "77001",
+    "sex": "F",
+    "id": "R1"
+   }
+  },
+  {
+   "id": "household-unrelated-name-date-typo",
+   "title": "household-unrelated-name-date-typo",
+   "why": "Held-out household automatic match regression",
+   "risk": "overlay",
+   "expect": "not_match",
+   "left": {
+    "given_name": "Kaitlin",
+    "family_name": "Sample",
+    "dob": "1999-09-11",
+    "phone": "2025550101",
+    "zip": "77001",
+    "sex": "F",
+    "id": "L1"
+   },
+   "right": {
+    "given_name": "Theresa",
+    "family_name": "Sample",
+    "dob": "1999-09-01",
+    "phone": "2025550101",
+    "zip": "77001",
+    "sex": "F",
+    "id": "R1"
+   }
   }
  ]
 }

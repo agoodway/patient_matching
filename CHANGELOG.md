@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.1
+
+- Held-out household regressions: require review when either record has an
+  unnamed newborn label without a shared source/MRN, and for unrelated
+  household names with a one-edit birth date difference greater than one day
+  unless a full SSN agrees.
+- Full eval: golden scenarios 88/88; enterprise precision 0.9996262148,
+  recall 0.9231388793 (baseline 0.9735358417), false automatic matches 3
+  (baseline 24), review-inclusive recall unchanged at 0.9939017374. The
+  broader newborn protection intentionally sends more true pairs to review.
+- Independent seed-2027 households, shaped without SSN/MRN/source, yield no
+  false automatic matches at 121, 503 or 901 record-bearing people; reference
+  m recall is 0.9218, 0.8479 and 0.8488 versus account EM 0.5475, 0.6901 and
+  0.6912. All precisions are 1.0.
+
 ## 0.3.0
 
 - Add prior-only m estimation (`m_estimation: :prior`) with fixed lambda,

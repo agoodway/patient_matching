@@ -4,6 +4,21 @@ defmodule PatientMatching.GuardsTest do
 
   defp n(record), do: Normalize.record(Map.put(record, :id, 1)).normalized
 
+  test "single unnamed child and household names with a DOB typo cannot auto-match" do
+    a = %{given_name: "BB", family_name: "Sample", dob: "2017-04-27", phone: "2025550101"}
+    assert Guards.newborn_identity?(n(a), n(%{a | given_name: "Angela"}))
+    b = %{given_name: "Kaitlin", family_name: "Sample", dob: "1999-09-11", phone: "2025550101"}
+    c = %{b | given_name: "Theresa", dob: "1999-09-01"}
+    assert Guards.household_name_conflict?(n(b), n(c))
+    refute Guards.household_name_conflict?(n(b), n(%{c | given_name: "Kaitlin"}))
+    refute Guards.household_name_conflict?(n(b), n(%{c | phone: "2025550102"}))
+
+    refute Guards.household_name_conflict?(
+             n(Map.put(b, :ssn, "212456789")),
+             n(Map.put(c, :ssn, "212456789"))
+           )
+  end
+
   test "child twins include adjacent dates while a same-child date error remains unguarded" do
     a = %{given_name: "Alex", family_name: "Sample", dob: "2018-01-10", phone: "2025550101"}
     assert Guards.child_twin?(n(a), n(%{a | given_name: "Robin", dob: "2018-01-11"}))
